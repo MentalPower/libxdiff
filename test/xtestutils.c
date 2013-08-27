@@ -42,6 +42,10 @@
 #define off_t long
 #define size_t int
 
+#else /* #if defined(WIN32) || defined(_WIN32) */
+
+#include <unistd.h>
+
 #endif /* #if defined(WIN32) || defined(_WIN32) */
 
 #include "xmacros.h"

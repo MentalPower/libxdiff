@@ -86,7 +86,8 @@ static int xdl_load_hunk_info(char const *line, long size, hunkinfo_t *hki) {
 	for (; size && !XDL_ISDIGIT(*line); size--, line++);
 	if (!size || !XDL_ISDIGIT(*line))
 		return -1;
-	hki->s1 = xdl_atol(line, &next) - 1;
+	if ((hki->s1 = xdl_atol(line, &next) - 1) < 0)
+		hki->s1 = 0;
 	size -= next - line;
 	line = next;
 
@@ -100,7 +101,8 @@ static int xdl_load_hunk_info(char const *line, long size, hunkinfo_t *hki) {
 	for (; size && !XDL_ISDIGIT(*line); size--, line++);
 	if (!size || !XDL_ISDIGIT(*line))
 		return -1;
-	hki->s2 = xdl_atol(line, &next) - 1;
+	if ((hki->s2 = xdl_atol(line, &next) - 1) < 0)
+		hki->s2 = 0;
 	size -= next - line;
 	line = next;
 
@@ -184,7 +186,6 @@ static int xdl_init_patch(mmfile_t *mf, patch_t *pch) {
 
 		return -1;
 	}
-
 	pch->hkrec = 0;
 	pch->hklen = 0;
 
@@ -213,7 +214,6 @@ static int xdl_load_hunk(patch_t *pch, long hkrec) {
 
 		return -1;
 	}
-
 	pch->hi.cmn = pch->hi.radd = pch->hi.rdel = 0;
 	for (i = pch->hkrec + 1;
 	     (line = xdl_recfile_get(&pch->rf, i, &size)) != NULL; i++) {
@@ -294,7 +294,6 @@ static int xdl_find_hunk(recfile_t *rf, long ibase, patch_t *pch, int mode,
 		*exact = 1;
 		return 1;
 	}
-
 	for (i = 1;; i++) {
 		j = 0;
 		if (hpos - i >= ibase)
@@ -345,7 +344,6 @@ static int xdl_apply_hunk(recfile_t *rf, long hkpos, patch_t *pch, int mode,
 		return -1;
 	}
 	*ibase = hkpos;
-
 	for (i = pch->hkrec + 1;
 	     (line = xdl_recfile_get(&pch->rf, i, &size)) != NULL; i++) {
 		if (*line == '@' || *line == '\n')
@@ -359,7 +357,6 @@ static int xdl_apply_hunk(recfile_t *rf, long hkpos, patch_t *pch, int mode,
 				return -1;
 			}
 		}
-
 		if (*line == ' ' || *line == mode)
 			(*ibase)++;
 		if (*line == mode)
@@ -390,17 +387,14 @@ static int xdl_reject_hunk(recfile_t *rf, patch_t *pch, int mode,
 		c2 = pch->hi.c1;
 	}
 	s1 += ps->adds - ps->dels;
-
 	if (xdl_emit_hunk_hdr(s1 + 1, c1, s2 + 1, c2, rjecb) < 0) {
 
 		return -1;
 	}
-
 	for (i = pch->hkrec + 1;
 	     (line = xdl_recfile_get(&pch->rf, i, &size)) != NULL; i++) {
 		if (*line == '@' || *line == '\n')
 			break;
-
 		if (mode == '-' || *line == ' ') {
 			mb.ptr = (char *) line;
 			mb.size = size;
@@ -410,7 +404,6 @@ static int xdl_reject_hunk(recfile_t *rf, patch_t *pch, int mode,
 			}
 		} else {
 			pre = *line == '+' ? "-": "+";
-
 			if (xdl_emit_diffrec(line + 1, size - 1, pre, strlen(pre),
 					     rjecb) < 0) {
 
@@ -440,7 +433,6 @@ int xdl_patch(mmfile_t *mf, mmfile_t *mfp, int mode, xdemitcb_t *ecb,
 		xdl_free_recfile(&rff);
 		return -1;
 	}
-
 	ps.adds = ps.dels = 0;
 	ibase = 0;
 	fuzzies = 0;
@@ -472,14 +464,12 @@ int xdl_patch(mmfile_t *mf, mmfile_t *mfp, int mode, xdemitcb_t *ecb,
 		xdl_free_recfile(&rff);
 		return -1;
 	}
-
 	if (xdl_flush_section(&rff, ibase, rff.nrec - 1, ecb) < 0) {
 
 		xdl_free_patch(&pch);
 		xdl_free_recfile(&rff);
 		return -1;
 	}
-
 	xdl_free_patch(&pch);
 	xdl_free_recfile(&rff);
 

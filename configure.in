@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(libxdiff, 0.14)
-AM_INIT_AUTOMAKE(libxdiff, 0.14)
+AC_INIT(libxdiff, 0.15)
+AM_INIT_AUTOMAKE(libxdiff, 0.15)
 AM_CONFIG_HEADER(config.h)
 
 dnl Checks for programs.
