@@ -1,8 +1,9 @@
-<HTML><HEAD><TITLE>Manpage of LibXDiff</TITLE>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML><HEAD><TITLE>Man page of LibXDiff</TITLE>
 </HEAD><BODY text="#0000FF" bgcolor="#FFFFFF">
 <H1>LibXDiff</H1>
-Section: File Differential Library (3)<BR>Updated: 0.10<BR><A HREF="#index">Index</A>
-<A HREF="http://localhost/cgi-bin/man/man2html">Return to Main Contents</A><HR>
+Section: File Differential Library (3)<BR>Updated: 0.12<BR><A HREF="#index">Index</A>
+<A HREF="/cgi-bin/man/man2html">Return to Main Contents</A><HR>
 
 <A NAME="lbAB">&nbsp;</A>
 <H2>NAME</H2>
@@ -17,7 +18,7 @@ xdl_mmfile_compact, xdl_diff, xdl_patch, xdl_merge3, xdl_bdiff_mb, xdl_bdiff, xd
 <H2>SYNOPSIS</H2>
 
 <PRE>
-<B>#include &lt;<A HREF="file:/usr/include/xdiff.h">xdiff.h</A>&gt;</B>
+<B>#include &lt;<A HREF="file:///usr/include/xdiff.h">xdiff.h</A>&gt;</B>
 
 <B>int xdl_set_allocator(memallocator_t const *</B><I>malt</I><B>);</B>
 <B>void *xdl_malloc(unsigned int </B><I>size</I><B>);</B>
@@ -167,11 +168,11 @@ A typical initialization sequence for
 <B>POSIX</B>
 
 systems will use the standard
-<B><A HREF="http://localhost/cgi-bin/man/man2html?3+malloc">malloc</A></B>(3),
+<B><A HREF="/cgi-bin/man/man2html?3+malloc">malloc</A></B>(3),
 
-<B><A HREF="http://localhost/cgi-bin/man/man2html?3+free">free</A></B>(3),
+<B><A HREF="/cgi-bin/man/man2html?3+free">free</A></B>(3),
 
-<B><A HREF="http://localhost/cgi-bin/man/man2html?3+realloc">realloc</A></B>(3)
+<B><A HREF="/cgi-bin/man/man2html?3+realloc">realloc</A></B>(3)
 
 and will look like:
 <PRE>
@@ -869,7 +870,7 @@ the
 <B>xdl_bdiff</B>(),
 
 the caller can setup the two memory buffer by using, for example,
-<B><A HREF="http://localhost/cgi-bin/man/man2html?2+mmap">mmap</A></B>(2),
+<B><A HREF="/cgi-bin/man/man2html?2+mmap">mmap</A></B>(2),
 
 and hence avoiding unnecessary memory copies. The other parameters and the return value
 of the function
@@ -998,8 +999,8 @@ There are no known bugs.  Bug reports and comments to Davide Libenzi
 </DL>
 <HR>
 This document was created by
-<A HREF="http://localhost/cgi-bin/man/man2html">man2html</A>,
+<A HREF="/cgi-bin/man/man2html">man2html</A>,
 using the manual pages.<BR>
-Time: 18:32:52 GMT, April 30, 2005
+Time: 22:56:18 GMT, September 06, 2005
 </BODY>
 </HTML>

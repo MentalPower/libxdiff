@@ -39,6 +39,7 @@ extern "C" {
 
 #define XDL_BDOP_INS 1
 #define XDL_BDOP_CPY 2
+#define XDL_BDOP_INSB 3
 
 
 
@@ -119,7 +120,7 @@ int xdl_bdiff_mb(mmbuffer_t *mmb1, mmbuffer_t *mmb2, bdiffparam_t const *bdp, xd
 int xdl_bdiff(mmfile_t *mmf1, mmfile_t *mmf2, bdiffparam_t const *bdp, xdemitcb_t *ecb);
 long xdl_bdiff_tgsize(mmfile_t *mmfp);
 int xdl_bpatch(mmfile_t *mmf, mmfile_t *mmfp, xdemitcb_t *ecb);
-
+int xdl_bpatch_multi(mmbuffer_t *base, mmbuffer_t *mbpch, int n, xdemitcb_t *ecb);
 
 
 #ifdef __cplusplus

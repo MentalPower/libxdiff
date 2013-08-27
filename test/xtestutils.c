@@ -480,3 +480,103 @@ int xdlt_auto_binregress(bdiffparam_t const *bdp, long size,
 	return 0;
 }
 
+
+int xdlt_auto_mbinregress(bdiffparam_t const *bdp, long size,
+			  double rmod, int chmax, int n) {
+	int i, res;
+	mmbuffer_t *mbb;
+	mmfile_t *mf, *mfc, *mfx;
+	mmfile_t mfn, mff, mfd, mfb;
+	xdemitcb_t ecb;
+
+	if ((mbb = (mmbuffer_t *) xdl_malloc((n + 2) * sizeof(mmbuffer_t))) == NULL) {
+
+		return -1;
+	}
+	if ((mf = mfc = (mmfile_t *) xdl_malloc((n + 2) * sizeof(mmfile_t))) == NULL) {
+
+		xdl_free(mbb);
+		return -1;
+	}
+	if (xdlt_create_file(mfc, size) < 0) {
+
+		xdl_free(mf);
+		xdl_free(mbb);
+		return -1;
+	}
+	mbb[0].ptr = (char *) xdl_mmfile_first(mfc, &mbb[0].size);
+	mfc++;
+	mfx = mf;
+	for (i = 0; i < n; i++) {
+		if (xdlt_change_file(mfx, &mfn, rmod, chmax) < 0) {
+
+			if (mfx != mf) xdl_free_mmfile(mfx);
+			for (; i >= 0; i--)
+				xdl_free_mmfile(mf + i);
+			xdl_free(mf);
+			xdl_free(mbb);
+			return -1;
+		}
+		if (xdl_mmfile_compact(&mfn, &mff, XDLT_STD_BLKSIZE, XDL_MMF_ATOMIC) < 0) {
+
+			xdl_free_mmfile(&mfn);
+			if (mfx != mf) xdl_free_mmfile(mfx);
+			for (; i >= 0; i--)
+				xdl_free_mmfile(mf + i);
+			xdl_free(mf);
+			xdl_free(mbb);
+			return -1;
+		}
+		xdl_free_mmfile(&mfn);
+		if (xdlt_do_bindiff(mfx, &mff, bdp, &mfd) < 0) {
+
+			xdl_free_mmfile(&mff);
+			if (mfx != mf) xdl_free_mmfile(mfx);
+			for (; i >= 0; i--)
+				xdl_free_mmfile(mf + i);
+			xdl_free(mf);
+			xdl_free(mbb);
+			return -1;
+		}
+		if (mfx != mf) xdl_free_mmfile(mfx);
+		mfx = &mfb;
+		*mfx = mff;
+		if (xdl_mmfile_compact(&mfd, mfc, XDLT_STD_BLKSIZE, XDL_MMF_ATOMIC) < 0) {
+
+			xdl_free_mmfile(&mfd);
+			xdl_free_mmfile(mfx);
+			for (; i >= 0; i--)
+				xdl_free_mmfile(mf + i);
+			xdl_free(mf);
+			xdl_free(mbb);
+			return -1;
+		}
+		mbb[i + 1].ptr = (char *) xdl_mmfile_first(mfc, &mbb[i + 1].size);
+		mfc++;
+		xdl_free_mmfile(&mfd);
+	}
+	if (xdl_init_mmfile(mfc, XDLT_STD_BLKSIZE, XDL_MMF_ATOMIC) < 0) {
+
+		xdl_free_mmfile(mfx);
+		for (i = n; i >= 0; i--)
+			xdl_free_mmfile(mf + i);
+		xdl_free(mf);
+		xdl_free(mbb);
+		return -1;
+	}
+
+	ecb.priv = mfc;
+	ecb.outf = xdlt_mmfile_outf;
+
+	if ((res = xdl_bpatch_multi(&mbb[0], &mbb[1], n, &ecb)) == 0)
+		res = xdl_mmfile_cmp(mfx, mfc);
+
+	xdl_free_mmfile(mfx);
+	for (i = n + 1; i >= 0; i--)
+		xdl_free_mmfile(mf + i);
+	xdl_free(mf);
+	xdl_free(mbb);
+
+	return res;
+}
+

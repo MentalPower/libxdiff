@@ -339,15 +339,15 @@ int xdl_do_diff(mmfile_t *mf1, mmfile_t *mf2, xpparam_t const *xpp,
 	 * One is to store the forward path and one to store the backward path.
 	 */
 	ndiags = xe->xdf1.nreff + xe->xdf2.nreff + 3;
-	if (!(kvd = (long *) xdl_malloc(2 * ndiags * sizeof(long)))) {
+	if (!(kvd = (long *) xdl_malloc((2 * ndiags + 2) * sizeof(long)))) {
 
 		xdl_free_env(xe);
 		return -1;
 	}
 	kvdf = kvd;
 	kvdb = kvdf + ndiags;
-	kvdf += xe->xdf2.nreff;
-	kvdb += xe->xdf2.nreff;
+	kvdf += xe->xdf2.nreff + 1;
+	kvdb += xe->xdf2.nreff + 1;
 
 	/*
 	 * Classical integer square root approximation using shifts.

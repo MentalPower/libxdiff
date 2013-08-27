@@ -45,7 +45,7 @@ static void wrap_free(void *priv, void *ptr) {
 
 static void *wrap_realloc(void *priv, void *ptr, unsigned int size) {
 
-	realloc(ptr, size);
+	return realloc(ptr, size);
 }
 
 
@@ -106,6 +106,15 @@ int main(int argc, char *argv[]) {
 			fprintf(stderr, "OK\n");
 		}
 
+		fprintf(stderr, "Running MBIN  test : %d ... ", i);
+		if (xdlt_auto_mbinregress(&bdp, size, rmod, chmax, 32) != 0) {
+
+			fprintf(stderr, "FAIL\n");
+			break;
+		} else {
+
+			fprintf(stderr, "OK\n");
+		}
 	}
 
 	return 0;

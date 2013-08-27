@@ -307,20 +307,22 @@ void xdl_free_env(xdfenv_t *xe) {
 static int xdl_clean_mmatch(char const *dis, long i, long s, long e) {
 	long r, rdis, rpdis;
 
-	for (r = 1, rdis = 0, rpdis = 1; (i - r) >= s; r++)
+	for (r = 1, rdis = 0, rpdis = 1; (i - r) >= s; r++) {
 		if (!dis[i - r])
 			rdis++;
 		else if (dis[i - r] == 2)
 			rpdis++;
 		else
 			break;
-	for (r = 1; (i + r) <= e; r++)
+	}
+	for (r = 1; (i + r) <= e; r++) {
 		if (!dis[i + r])
 			rdis++;
 		else if (dis[i + r] == 2)
 			rpdis++;
 		else
 			break;
+	}
 
 	return rpdis * XDL_KPDIS_RUN < (rpdis + rdis);
 }

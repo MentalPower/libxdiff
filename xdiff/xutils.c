@@ -205,7 +205,6 @@ void *xdl_mmfile_writeallocate(mmfile_t *mmf, long size) {
 
 long xdl_mmfile_ptradd(mmfile_t *mmf, char *ptr, long size, unsigned long flags) {
 	mmblock_t *wcur;
-	char *blk;
 
 	if (!(wcur = (mmblock_t *) xdl_malloc(sizeof(mmblock_t)))) {
 
@@ -293,11 +292,11 @@ int xdl_mmfile_cmp(mmfile_t *mmf1, mmfile_t *mmf2) {
 	if ((cur2 = blk2 = xdl_mmfile_first(mmf2, &bsize2)) != NULL)
 		top2 = blk2 + bsize2;
 	if (!cur1) {
-		if (!cur2)
+		if (!cur2 || xdl_mmfile_size(mmf2) == 0)
 			return 0;
 		return -*cur2;
 	} else if (!cur2)
-			return *cur1;
+			return xdl_mmfile_size(mmf1) ? *cur1: 0;
 	for (;;) {
 		if (cur1 >= top1) {
 			if ((cur1 = blk1 = xdl_mmfile_next(mmf1, &bsize1)) != NULL)

@@ -24,9 +24,8 @@
 
 
 
-#define XDL_INSBATCH_MAX 255
-#define XDL_BDIFF_BIGMATCH 8
 #define XDL_MIN_BLKSIZE 16
+#define XDL_INSBOP_SIZE (1 + 4)
 #define XDL_COPYOP_SIZE (1 + 4 + 4)
 
 
@@ -137,13 +136,13 @@ unsigned long xdl_mmf_adler32(mmfile_t *mmf) {
 
 
 int xdl_bdiff_mb(mmbuffer_t *mmb1, mmbuffer_t *mmb2, bdiffparam_t const *bdp, xdemitcb_t *ecb) {
-	long i, rsize, size, bsize, ibufcnt, csize, off, msize, moff;
+	long i, rsize, size, bsize, csize, msize, moff;
 	unsigned long fp;
-	char const *blk, *data, *top, *ptr1, *ptr2;
+	char const *blk, *base, *data, *top, *ptr1, *ptr2;
 	bdrecord_t *brec;
 	bdfile_t bdf;
-	mmbuffer_t mb;
-	unsigned char insbuf[XDL_INSBATCH_MAX + 2], cpybuf[32];
+	mmbuffer_t mb[2];
+	unsigned char cpybuf[32];
 
 	if ((bsize = bdp->bsize) < XDL_MIN_BLKSIZE)
 		bsize = XDL_MIN_BLKSIZE;
@@ -162,10 +161,10 @@ int xdl_bdiff_mb(mmbuffer_t *mmb1, mmbuffer_t *mmb2, bdiffparam_t const *bdp, xd
 	XDL_LE32_PUT(cpybuf, fp);
 	XDL_LE32_PUT(cpybuf + 4, size);
 
-	mb.ptr = (char *) cpybuf;
-	mb.size = 4 + 4;
+	mb[0].ptr = (char *) cpybuf;
+	mb[0].size = 4 + 4;
 
-	if (ecb->outf(ecb->priv, &mb, 1) < 0) {
+	if (ecb->outf(ecb->priv, mb, 1) < 0) {
 
 		xdl_free_bdfile(&bdf);
 		return -1;
@@ -173,7 +172,7 @@ int xdl_bdiff_mb(mmbuffer_t *mmb1, mmbuffer_t *mmb2, bdiffparam_t const *bdp, xd
 
 	if ((blk = (char const *) mmb2->ptr) != NULL) {
 		size = mmb2->size;
-		for (ibufcnt = 0, data = blk, top = data + size; data < top;) {
+		for (base = data = blk, top = data + size; data < top;) {
 			rsize = XDL_MIN(bsize, (long) (top - data));
 			fp = xdl_adler32(0, (unsigned char const *) data, rsize);
 
@@ -186,41 +185,36 @@ int xdl_bdiff_mb(mmbuffer_t *mmb1, mmbuffer_t *mmb2, bdiffparam_t const *bdp, xd
 
 					if ((csize = (long) (ptr1 - brec->ptr)) > msize) {
 						moff = (long) (brec->ptr - bdf.data);
-						if ((msize = csize) > XDL_BDIFF_BIGMATCH * bsize)
-							break;
+						msize = csize;
 					}
 				}
 
 			if (msize < XDL_COPYOP_SIZE) {
-				insbuf[2 + ibufcnt++] = (unsigned char) *data++;
-				if (ibufcnt == XDL_INSBATCH_MAX) {
-					insbuf[0] = XDL_BDOP_INS;
-					insbuf[1] = (unsigned char) ibufcnt;
-
-					mb.ptr = (char *) insbuf;
-					mb.size = 2 + ibufcnt;
-
-					if (ecb->outf(ecb->priv, &mb, 1) < 0) {
-
-						xdl_free_bdfile(&bdf);
-						return -1;
-					}
-					ibufcnt = 0;
-				}
+				data++;
 			} else {
-				if (ibufcnt) {
-					insbuf[0] = XDL_BDOP_INS;
-					insbuf[1] = (unsigned char) ibufcnt;
+				if (data > base) {
+					i = (long) (data - base);
+					if (i > 255) {
+						cpybuf[0] = XDL_BDOP_INSB;
+						XDL_LE32_PUT(cpybuf + 1, i);
 
-					mb.ptr = (char *) insbuf;
-					mb.size = 2 + ibufcnt;
+						mb[0].ptr = (char *) cpybuf;
+						mb[0].size = XDL_INSBOP_SIZE;
+					} else {
+						cpybuf[0] = XDL_BDOP_INS;
+						cpybuf[1] = (unsigned char) i;
 
-					if (ecb->outf(ecb->priv, &mb, 1) < 0) {
+						mb[0].ptr = (char *) cpybuf;
+						mb[0].size = 2;
+					}
+					mb[1].ptr = (char *) base;
+					mb[1].size = i;
+
+					if (ecb->outf(ecb->priv, mb, 2) < 0) {
 
 						xdl_free_bdfile(&bdf);
 						return -1;
 					}
-					ibufcnt = 0;
 				}
 
 				data += msize;
@@ -229,24 +223,36 @@ int xdl_bdiff_mb(mmbuffer_t *mmb1, mmbuffer_t *mmb2, bdiffparam_t const *bdp, xd
 				XDL_LE32_PUT(cpybuf + 1, moff);
 				XDL_LE32_PUT(cpybuf + 5, msize);
 
-				mb.ptr = (char *) cpybuf;
-				mb.size = XDL_COPYOP_SIZE;
+				mb[0].ptr = (char *) cpybuf;
+				mb[0].size = XDL_COPYOP_SIZE;
 
-				if (ecb->outf(ecb->priv, &mb, 1) < 0) {
+				if (ecb->outf(ecb->priv, mb, 1) < 0) {
 
 					xdl_free_bdfile(&bdf);
 					return -1;
 				}
+				base = data;
 			}
 		}
-		if (ibufcnt) {
-			insbuf[0] = XDL_BDOP_INS;
-			insbuf[1] = (unsigned char) ibufcnt;
+		if (data > base) {
+			i = (long) (data - base);
+			if (i > 255) {
+				cpybuf[0] = XDL_BDOP_INSB;
+				XDL_LE32_PUT(cpybuf + 1, i);
 
-			mb.ptr = (char *) insbuf;
-			mb.size = 2 + ibufcnt;
+				mb[0].ptr = (char *) cpybuf;
+				mb[0].size = XDL_INSBOP_SIZE;
+			} else {
+				cpybuf[0] = XDL_BDOP_INS;
+				cpybuf[1] = (unsigned char) i;
 
-			if (ecb->outf(ecb->priv, &mb, 1) < 0) {
+				mb[0].ptr = (char *) cpybuf;
+				mb[0].size = 2;
+			}
+			mb[1].ptr = (char *) base;
+			mb[1].size = i;
+
+			if (ecb->outf(ecb->priv, mb, 2) < 0) {
 
 				xdl_free_bdfile(&bdf);
 				return -1;
@@ -296,6 +302,12 @@ long xdl_bdiff_tgsize(mmfile_t *mmfp) {
 			if (*data == XDL_BDOP_INS) {
 				data++;
 				csize = (long) *data++;
+				tgsize += csize;
+				data += csize;
+			} else if (*data == XDL_BDOP_INSB) {
+				data++;
+				XDL_LE32_GET(data, csize);
+				data += 4;
 				tgsize += csize;
 				data += csize;
 			} else if (*data == XDL_BDOP_CPY) {

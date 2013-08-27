@@ -70,7 +70,7 @@ static void wrap_free(void *priv, void *ptr) {
 
 static void *wrap_realloc(void *priv, void *ptr, unsigned int size) {
 
-	realloc(ptr, size);
+	return realloc(ptr, size);
 }
 
 

@@ -555,4 +555,4 @@ BUGS
 
 
 
-GNU                                  0.10                          LibXDiff(3)
+GNU                                  0.12                          LibXDiff(3)

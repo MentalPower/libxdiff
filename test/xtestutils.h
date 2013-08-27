@@ -46,6 +46,8 @@ int xdlt_do_binpatch(mmfile_t *mf, mmfile_t *mfp, mmfile_t *mfr);
 int xdlt_do_binregress(mmfile_t *mf1, mmfile_t *mf2, bdiffparam_t const *bdp);
 int xdlt_auto_binregress(bdiffparam_t const *bdp, long size,
 			 double rmod, int chmax);
+int xdlt_auto_mbinregress(bdiffparam_t const *bdp, long size,
+			  double rmod, int chmax, int n);
 
 
 #endif /* #if !defined(XTESTUTILS_H) */
