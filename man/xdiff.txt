@@ -560,4 +560,4 @@ BUGS
 
 
 
-GNU                                  0.18                          LibXDiff(3)
+GNU                                  0.19                          LibXDiff(3)

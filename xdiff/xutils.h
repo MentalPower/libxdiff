@@ -25,6 +25,7 @@
 
 
 
+long xdl_bogosqrt(long n);
 int xdl_emit_diffrec(char const *rec, long size, char const *pre, long psize,
 		     xdemitcb_t *ecb);
 int xdl_mmfile_outf(void *priv, mmbuffer_t *mb, int nbuf);

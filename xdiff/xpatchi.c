@@ -162,9 +162,9 @@ static int xdl_load_hunk_info(char const *line, long size, hunkinfo_t *hki) {
 	 * We start from zero, so decrement by one unless it's the special position
 	 * '0' inside the unified diff (new or deleted file).
 	 */
-	if (hki->s1 > 0)
+	if (hki->s1 > 0 && hki->c1 > 0)
 		hki->s1--;
-	if (hki->s2 > 0)
+	if (hki->s2 > 0 && hki->c2 > 0)
 		hki->s2--;
 
 	return 0;

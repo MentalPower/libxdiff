@@ -48,10 +48,10 @@ static int xdlt_outf(void *priv, mmbuffer_t *mb, int nbuf) {
 void usage(char const *prg) {
 
 	fprintf(stderr,
-		"use: %s  --diff    from-file  to-file\n"
-		"     %s  --patch   orig-file  patch-file\n"
-		"     %s  --bdiff   from-file  to-file\n"
-		"     %s  --bpatch  orig-file  patch-file\n",
+		"use: %s --diff [-C N]   from-file  to-file\n"
+		"     %s --patch         orig-file  patch-file\n"
+		"     %s --bdiff [-B N]  from-file  to-file\n"
+		"     %s --bpatch        orig-file  patch-file\n",
 		prg, prg, prg, prg);
 }
 
@@ -75,7 +75,7 @@ static void *wrap_realloc(void *priv, void *ptr, unsigned int size) {
 
 
 int main(int argc, char *argv[]) {
-	int do_diff, do_patch, do_bdiff, do_bpatch;
+	int i = 1, ctxlen = 3, bsize = 16, do_diff, do_patch, do_bdiff, do_bpatch;
 	memallocator_t malt;
 	mmfile_t mf1, mf2;
 	xpparam_t xpp;
@@ -87,7 +87,6 @@ int main(int argc, char *argv[]) {
 		usage(argv[0]);
 		return 1;
 	}
-
 	malt.priv = NULL;
 	malt.malloc = wrap_malloc;
 	malt.free = wrap_free;
@@ -95,33 +94,53 @@ int main(int argc, char *argv[]) {
 	xdl_set_allocator(&malt);
 
 	do_diff = do_patch = do_bdiff = do_bpatch = 0;
-	if (!strcmp(argv[1], "--diff"))
+	if (!strcmp(argv[i], "--diff")) {
+		i++;
 		do_diff = 1;
-	else if (!strcmp(argv[1], "--patch"))
+		for (; i < argc; i++) {
+			if (strcmp(argv[i], "-C") == 0) {
+				if (++i < argc)
+					ctxlen = atoi(argv[i]);
+			} else
+				break;
+		}
+	} else if (!strcmp(argv[i], "--patch")) {
+		i++;
 		do_patch = 1;
-	else if (!strcmp(argv[1], "--bdiff"))
+	} else if (!strcmp(argv[i], "--bdiff")) {
+		i++;
 		do_bdiff = 1;
-	else if (!strcmp(argv[1], "--bpatch"))
+		for (; i < argc; i++) {
+			if (strcmp(argv[i], "-B") == 0) {
+				if (++i < argc)
+					bsize = atoi(argv[i]);
+			} else
+				break;
+		}
+	} else if (!strcmp(argv[i], "--bpatch")) {
+		i++;
 		do_bpatch = 1;
-	else {
+	} else {
+		usage(argv[0]);
+		return 1;
+	}
+	if (argc - i < 2) {
 		usage(argv[0]);
 		return 1;
 	}
 
 	xpp.flags = 0;
-	xecfg.ctxlen = 3;
-	bdp.bsize = 16;
-
-	if (xdlt_load_mmfile(argv[2], &mf1, do_bdiff || do_bpatch) < 0) {
+	xecfg.ctxlen = ctxlen;
+	bdp.bsize = bsize;
+	if (xdlt_load_mmfile(argv[i], &mf1, do_bdiff || do_bpatch) < 0) {
 
 		return 2;
 	}
-	if (xdlt_load_mmfile(argv[3], &mf2, do_bdiff || do_bpatch) < 0) {
+	if (xdlt_load_mmfile(argv[i + 1], &mf2, do_bdiff || do_bpatch) < 0) {
 
 		xdl_free_mmfile(&mf1);
 		return 2;
 	}
-
 	if (do_diff) {
 		ecb.priv = stdout;
 		ecb.outf = xdlt_outf;
@@ -135,7 +154,6 @@ int main(int argc, char *argv[]) {
 	} else if (do_bdiff) {
 		ecb.priv = stdout;
 		ecb.outf = xdlt_outf;
-
 		if (xdl_bdiff(&mf1, &mf2, &bdp, &ecb) < 0) {
 
 			xdl_free_mmfile(&mf2);
@@ -145,20 +163,17 @@ int main(int argc, char *argv[]) {
 	} else if (do_bpatch) {
 		ecb.priv = stdout;
 		ecb.outf = xdlt_outf;
-
 		if (xdl_bpatch(&mf1, &mf2, &ecb) < 0) {
 
 			xdl_free_mmfile(&mf2);
 			xdl_free_mmfile(&mf1);
 			return 5;
 		}
-
 	} else if (do_patch) {
 		ecb.priv = stdout;
 		ecb.outf = xdlt_outf;
 		rjecb.priv = stderr;
 		rjecb.outf = xdlt_outf;
-
 		if (xdl_patch(&mf1, &mf2, XDL_PATCH_NORMAL, &ecb, &rjecb) < 0) {
 
 			xdl_free_mmfile(&mf2);
@@ -166,7 +181,6 @@ int main(int argc, char *argv[]) {
 			return 6;
 		}
 	}
-
 	xdl_free_mmfile(&mf2);
 	xdl_free_mmfile(&mf1);
 
