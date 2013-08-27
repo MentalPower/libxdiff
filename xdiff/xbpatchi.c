@@ -25,16 +25,13 @@
 
 
 
-static int xdl_copy_range(mmfile_t *mmf, long off, long size, unsigned long cpyfp,
-			  xdemitcb_t *ecb);
+static int xdl_copy_range(mmfile_t *mmf, long off, long size, xdemitcb_t *ecb);
 
 
 
 
-static int xdl_copy_range(mmfile_t *mmf, long off, long size, unsigned long cpyfp,
-			  xdemitcb_t *ecb) {
+static int xdl_copy_range(mmfile_t *mmf, long off, long size, xdemitcb_t *ecb) {
 	long cpsize, rsize;
-	unsigned long fp;
 	mmbuffer_t mb;
 	char buf[512];
 
@@ -42,14 +39,12 @@ static int xdl_copy_range(mmfile_t *mmf, long off, long size, unsigned long cpyf
 
 		return -1;
 	}
-	for (cpsize = 0, fp = 0; cpsize < size;) {
+	for (cpsize = 0; cpsize < size;) {
 		rsize = XDL_MIN(size - cpsize, sizeof(buf));
 		if (xdl_read_mmfile(mmf, buf, rsize) != rsize) {
 
 			return -1;
 		}
-
-		fp = xdl_adler32(fp, (unsigned char const *) buf, rsize);
 
 		mb.ptr = buf;
 		mb.size = rsize;
@@ -62,57 +57,66 @@ static int xdl_copy_range(mmfile_t *mmf, long off, long size, unsigned long cpyf
 		cpsize += rsize;
 	}
 
-	if (fp != cpyfp) {
-
-		return -1;
-	}
-
 	return 0;
 }
 
 
 int xdl_bpatch(mmfile_t *mmf, mmfile_t *mmfp, xdemitcb_t *ecb) {
-	long size, off, csize;
-	unsigned long fp;
+	long size, off, csize, osize;
+	unsigned long fp, ofp;
 	char const *blk;
 	unsigned char const *data, *top;
 	mmbuffer_t mb;
 
-	if ((blk = (char const *) xdl_mmfile_first(mmfp, &size)) != NULL) {
-		do {
-			for (data = (unsigned char const *) blk, top = data + size;
-			     data < top;) {
-				if (*data == XDL_BDOP_INS) {
-					data++;
+	if ((blk = (char const *) xdl_mmfile_first(mmfp, &size)) == NULL ||
+	    size < XDL_BPATCH_HDR_SIZE) {
 
-					mb.size = (long) *data++;
-					mb.ptr = (char *) data;
-					data += mb.size;
+		return -1;
+	}
 
-					if (ecb->outf(ecb->priv, &mb, 1) < 0) {
+	ofp = xdl_mmf_adler32(mmf);
+	osize = xdl_mmfile_size(mmf);
+	XDL_LE32_GET(blk, fp);
+	XDL_LE32_GET(blk + 4, csize);
+	if (fp != ofp || csize != osize) {
 
-						return -1;
-					}
-				} else if (*data == XDL_BDOP_CPY) {
-					data++;
-					XDL_LE32_GET(data, off);
-					data += 4;
-					XDL_LE32_GET(data, csize);
-					data += 4;
-					XDL_LE32_GET(data, fp);
-					data += 4;
+		return -1;
+	}
 
-					if (xdl_copy_range(mmf, off, csize, fp, ecb) < 0) {
+	blk += XDL_BPATCH_HDR_SIZE;
+	size -= XDL_BPATCH_HDR_SIZE;
 
-						return -1;
-					}
-				} else {
+	do {
+		for (data = (unsigned char const *) blk, top = data + size;
+		     data < top;) {
+			if (*data == XDL_BDOP_INS) {
+				data++;
+
+				mb.size = (long) *data++;
+				mb.ptr = (char *) data;
+				data += mb.size;
+
+				if (ecb->outf(ecb->priv, &mb, 1) < 0) {
 
 					return -1;
 				}
+			} else if (*data == XDL_BDOP_CPY) {
+				data++;
+				XDL_LE32_GET(data, off);
+				data += 4;
+				XDL_LE32_GET(data, csize);
+				data += 4;
+
+				if (xdl_copy_range(mmf, off, csize, ecb) < 0) {
+
+					return -1;
+				}
+			} else {
+
+				return -1;
 			}
-		} while ((blk = (char const *) xdl_mmfile_next(mmfp, &size)) != NULL);
-	}
+		}
+	} while ((blk = (char const *) xdl_mmfile_next(mmfp, &size)) != NULL);
 
 	return 0;
 }

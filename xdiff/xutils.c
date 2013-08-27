@@ -65,7 +65,7 @@ void xdl_free_mmfile(mmfile_t *mmf) {
 
 	for (cur = mmf->head; (tmp = cur) != NULL;) {
 		cur = cur->next;
-		free(tmp);
+		xdl_free(tmp);
 	}
 }
 
@@ -123,7 +123,7 @@ long xdl_write_mmfile(mmfile_t *mmf, void const *data, long size) {
 		if (!(wcur = mmf->wcur) || wcur->size == wcur->bsize ||
 		    (mmf->flags & XDL_MMF_ATOMIC && wcur->size + size > wcur->bsize)) {
 			bsize = XDL_MAX(mmf->bsize, size);
-			if (!(wcur = (mmblock_t *) malloc(sizeof(mmblock_t) + bsize))) {
+			if (!(wcur = (mmblock_t *) xdl_malloc(sizeof(mmblock_t) + bsize))) {
 
 				return wsize;
 			}
@@ -174,7 +174,7 @@ void *xdl_mmfile_writeallocate(mmfile_t *mmf, long size) {
 
 	if (!(wcur = mmf->wcur) || wcur->size + size > wcur->bsize) {
 		bsize = XDL_MAX(mmf->bsize, size);
-		if (!(wcur = (mmblock_t *) malloc(sizeof(mmblock_t) + bsize))) {
+		if (!(wcur = (mmblock_t *) xdl_malloc(sizeof(mmblock_t) + bsize))) {
 
 			return NULL;
 		}
@@ -294,6 +294,18 @@ int xdl_mmfile_compact(mmfile_t *mmfo, mmfile_t *mmfc, long bsize, unsigned long
 }
 
 
+int xdl_mmfile_outf(void *priv, mmbuffer_t *mb, int nbuf) {
+	mmfile_t *mmf = priv;
+
+	if (xdl_writem_mmfile(mmf, mb, nbuf) < 0) {
+
+		return -1;
+	}
+
+	return 0;
+}
+
+
 int xdl_cha_init(chastore_t *cha, long isize, long icount) {
 
 	cha->head = cha->tail = NULL;
@@ -311,7 +323,7 @@ void xdl_cha_free(chastore_t *cha) {
 
 	for (cur = cha->head; (tmp = cur) != NULL;) {
 		cur = cur->next;
-		free(tmp);
+		xdl_free(tmp);
 	}
 }
 
@@ -321,7 +333,7 @@ void *xdl_cha_alloc(chastore_t *cha) {
 	void *data;
 
 	if (!(ancur = cha->ancur) || ancur->icurr == cha->nsize) {
-		if (!(ancur = (chanode_t *) malloc(sizeof(chanode_t) + cha->nsize))) {
+		if (!(ancur = (chanode_t *) xdl_malloc(sizeof(chanode_t) + cha->nsize))) {
 
 			return NULL;
 		}

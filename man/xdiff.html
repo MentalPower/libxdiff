@@ -1,16 +1,17 @@
 <HTML><HEAD><TITLE>Manpage of LibXDiff</TITLE>
 </HEAD><BODY text="#0000FF" bgcolor="#FFFFFF">
 <H1>LibXDiff</H1>
-Section: File Differential Library (3)<BR>Updated: 0.2<BR><A HREF="#index">Index</A>
+Section: File Differential Library (3)<BR>Updated: 0.6<BR><A HREF="#index">Index</A>
 <A HREF="http://localhost/cgi-bin/man/man2html">Return to Main Contents</A><HR>
 
 <A NAME="lbAB">&nbsp;</A>
 <H2>NAME</H2>
 
-xdl_init_mmfile, xdl_free_mmfile, xdl_mmfile_iscompact, xdl_seek_mmfile, xdl_read_mmfile,
-xdl_write_mmfile, xdl_writem_mmfile, xdl_mmfile_writeallocate, xdl_mmfile_first,
-xdl_mmfile_next, xdl_mmfile_size, xdl_mmfile_cmp, xdl_mmfile_compact,
-xdl_diff, xdl_patch, xdl_bdiff, xdl_bdiff_tgsize, xdl_bpatch - File Differential Library support functions
+<P>
+xdl_set_allocator, xdl_malloc, xdl_free, xdl_realloc, xdl_init_mmfile, xdl_free_mmfile,
+xdl_mmfile_iscompact, xdl_seek_mmfile, xdl_read_mmfile, xdl_write_mmfile, xdl_writem_mmfile,
+xdl_mmfile_writeallocate, xdl_mmfile_first, xdl_mmfile_next, xdl_mmfile_size, xdl_mmfile_cmp,
+xdl_mmfile_compact, xdl_diff, xdl_patch, xdl_merge3, xdl_bdiff, xdl_bdiff_tgsize, xdl_bpatch - File Differential Library support functions
 <P>
 <A NAME="lbAC">&nbsp;</A>
 <H2>SYNOPSIS</H2>
@@ -18,6 +19,10 @@ xdl_diff, xdl_patch, xdl_bdiff, xdl_bdiff_tgsize, xdl_bpatch - File Differential
 <PRE>
 <B>#include &lt;<A HREF="file:/usr/include/xdiff.h">xdiff.h</A>&gt;</B>
 
+<B>int xdl_set_allocator(memallocator_t const *</B><I>malt</I><B>);</B>
+<B>void *xdl_malloc(unsigned int </B><I>size</I><B>);</B>
+<B>void xdl_free(void *</B><I>ptr</I><B>);</B>
+<B>void *xdl_realloc(void *</B><I>ptr</I><B>, unsigned int </B><I>nsize</I><B>);</B>
 <B>int xdl_init_mmfile(mmfile_t *</B><I>mmf</I><B>, long </B><I>bsize</I><B>, unsigned long </B><I>flags</I><B>);</B>
 <B>void xdl_free_mmfile(mmfile_t *</B><I>mmf</I><B>);</B>
 <B>int xdl_mmfile_iscompact(mmfile_t *</B><I>mmf</I><B>);</B>
@@ -33,6 +38,7 @@ xdl_diff, xdl_patch, xdl_bdiff, xdl_bdiff_tgsize, xdl_bpatch - File Differential
 <B>int xdl_mmfile_compact(mmfile_t *</B><I>mmfo</I><B>, mmfile_t *</B><I>mmfc</I><B>, long </B><I>bsize</I><B>, unsigned long </B><I>flags</I><B>);</B>
 <B>int xdl_diff(mmfile_t *</B><I>mmf1</I><B>, mmfile_t *</B><I>mmf2</I><B>, xpparam_t const *</B><I>xpp</I><B>, xdemitconf_t const *</B><I>xecfg</I><B>, xdemitcb_t *</B><I>ecb</I><B>);</B>
 <B>int xdl_patch(mmfile_t *</B><I>mmf</I><B>, mmfile_t *</B><I>mmfp</I><B>, int </B><I>mode</I><B>, xdemitcb_t *</B><I>ecb</I><B>, xdemitcb_t *</B><I>rjecb</I><B>);</B>
+<B>int xdl_merge3(mmfile_t *</B><I>mmfo</I><B>, mmfile_t *</B><I>mmf1</I><B>, mmfile_t *</B><I>mmf2</I><B>, xdemitcb_t *</B><I>ecb</I><B>, xdemitcb_t *</B><I>rjecb</I><B>);</B>
 <B>int xdl_bdiff(mmfile_t *</B><I>mmf1</I><B>, mmfile_t *</B><I>mmf2</I><B>, bdiffparam_t const *</B><I>bdp</I><B>, xdemitcb_t *</B><I>ecb</I><B>);</B>
 <B>long xdl_bdiff_tgsize(mmfile_t *</B><I>mmfp</I><B>);</B>
 <B>int xdl_bpatch(mmfile_t *</B><I>mmf</I><B>, mmfile_t *</B><I>mmfp</I><B>, xdemitcb_t *</B><I>ecb</I><B>);</B>
@@ -88,6 +94,145 @@ copy and insert commands, like described inside the MacDonald paper.
 
 The following functions are defined:
 <DL COMPACT>
+<DT><B>int xdl_set_allocator(memallocator_t const *</B><I>malt</I><B>);</B>
+
+<DD>
+<P>
+The
+<B>LibXDiff</B>
+
+library enable the user to set its own memory allocator, that will be used
+for all the following memory requests. The allocator must be set before
+to start calling the
+<B>LibXDiff</B>
+
+library with a call to
+<B>xdl_set_allocator</B>().
+
+The memory allocator structure contains the following members:
+<PRE>
+
+        typedef struct s_memallocator {
+                void *(*malloc)(unsigned int size);
+                void (*free)(void * ptr);
+                void *(*realloc)(void *ptr, unsigned int nsize);
+        } memallocator_t;
+
+</PRE>
+
+The
+<B>malloc</B>()
+
+function pointer will be used by
+<B>LibXDiff</B>
+
+to request a memory block of
+<I>size</I>
+
+bytes. The
+<B>free</B>()
+
+function pointer will be called to free a previously allocated block
+<I>ptr</I>
+
+, while the
+<B>realloc</B>()
+
+will be used to resize the
+<I>ptr</I>
+
+to a new
+<I>nsize</I>
+
+size in bytes. The
+<B>LibXDiff</B>
+
+user must call
+<B>xdl_set_allocator</B>()
+
+before starting using the library, otherwise
+<B>LibXDiff</B>
+
+functions will fail due to the lack of memory allocation support.
+A typical initialization sequence for
+<B>POSIX</B>
+
+systems will use the standard
+<B><A HREF="http://localhost/cgi-bin/man/man2html?3+malloc">malloc</A></B>(3),
+
+<B><A HREF="http://localhost/cgi-bin/man/man2html?3+free">free</A></B>(3),
+
+<B><A HREF="http://localhost/cgi-bin/man/man2html?3+realloc">realloc</A></B>(3)
+
+and will look like:
+<PRE>
+
+        memallocator_t malt;
+
+        malt.malloc = malloc;
+        malt.free = free;
+        malt.realloc = realloc;
+        xdl_set_allocator(&amp;malt);
+
+</PRE>
+
+<P>
+<DT><B>void *xdl_malloc(unsigned int </B><I>size</I><B>);</B>
+
+<DD>
+<P>
+Allocates a memory block of
+<I>size</I>
+
+bytes using the
+<B>LibXDiff</B>
+
+memory allocator. The user can specify its own allocator using the
+<B>xdl_set_allocator</B>()
+
+function. The
+<B>xdl_malloc</B>()
+
+return a pointer to the newly allocated block, or
+<B>NULL</B>
+
+in case of failure.
+<P>
+<DT><B>void xdl_free(void *</B><I>ptr</I><B>);</B>
+
+<DD>
+<P>
+Free a previously allocated memory block pointed by
+<I>ptr</I>.
+
+The
+<I>ptr</I>
+
+block must has been allocated using either
+<B>xdl_malloc</B>()
+
+or
+<B>xdl_realloc</B>().
+
+<P>
+<DT><B>void *xdl_realloc(void *</B><I>ptr</I><B>, unsigned int </B><I>nsize</I><B>);</B>
+
+<DD>
+<P>
+Resizes the memory block pointed by
+<I>ptr</I>
+
+to a new size
+<I>nsize</I>.
+
+Return the resized block if successful, or
+<B>NULL</B>
+
+in case the reallocation fails. After a successful reallocation, the old
+<I>ptr</I>
+
+block is to be considered no more valid.
+<P>
 <DT><B>int xdl_init_mmfile(mmfile_t *</B><I>mmf</I><B>, long </B><I>bsize</I><B>, unsigned long </B><I>flags</I><B>);</B>
 
 <DD>
@@ -110,6 +255,14 @@ parameter is a combination of the following flags :
 Writes on the memory file will be atomic. That is, the data will not be split
 on two or more different blocks.
 <P>
+Once an
+<B>xdl_init_mmfile</B>()
+
+succeeded, a matching
+<B>xdl_free_mmfile</B>()
+
+must be called when the user has done using the memory file, otherwise serious
+memory leaks will happen.
 The function return 0 if succeed or -1 if an error is encountered.
 <P>
 <DT><B>void xdl_free_mmfile(mmfile_t *</B><I>mmf</I><B>);</B>
@@ -182,6 +335,9 @@ If the memory file has been created using the
 <B>XDL_MMF_ATOMIC</B>
 
 flag, the write request will not be split across different blocks.
+Note that all write operations done on memory files do append data at the end
+the file, and writes in the middle of it are allowed. This is because the library
+memory file abstraction does not need this functionality to be available.
 The function returns the number of bytes written or a number lower than
 <I>size</I>
 
@@ -471,7 +627,45 @@ as &quot;old&quot; file during the differential operation.
 The
 <I>ecb</I>
 
-will be use by the patch algorithm to create the result file while the
+will be used by the patch algorithm to create the result file while the
+<I>rjecb</I>
+
+will be used to emit all differential chunks that cannot be applied.
+Like explained above, callbacks are always called with entire records to guarantee
+atomicity of the resulting output.
+The function returns 0 if succeeded without performing any fuzzy hunk detection,
+a positive value if it secceeded with fuzzy hunk detection or -1 if an error occurred
+during the patch operation.
+<P>
+<DT><B>int xdl_merge3(mmfile_t *</B><I>mmfo</I><B>, mmfile_t *</B><I>mmf1</I><B>, mmfile_t *</B><I>mmf2</I><B>, xdemitcb_t *</B><I>ecb</I><B>, xdemitcb_t *</B><I>rjecb</I><B>);</B>
+
+<DD>
+<P>
+Merges three files together. The
+<I>mmfo</I>
+
+file is the original one, while
+<I>mmf1</I> and <I>mmf2</I>
+
+are two modified versions of
+<I>mmfo</I>.
+
+The function works by creating a differential between
+<I>mmfo</I> and <I>mmf2</I>
+
+and by applying the resulting patch to
+<I>mmf1</I>.
+
+Because of this sequence,
+<I>mmf1</I>
+
+changes will be privileged against the ones of
+<I>mmf2</I>.
+
+The
+<I>ecb</I>
+
+will be used by the patch algorithm to create the result file while the
 <I>rjecb</I>
 
 will be used to emit all differential chunks that cannot be applied.
@@ -700,6 +894,6 @@ There are no known bugs.  Bug reports and comments to Davide Libenzi
 This document was created by
 <A HREF="http://localhost/cgi-bin/man/man2html">man2html</A>,
 using the manual pages.<BR>
-Time: 19:07:46 GMT, June 27, 2003
+Time: 23:30:27 GMT, February 08, 2004
 </BODY>
 </HTML>

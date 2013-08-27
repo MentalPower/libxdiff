@@ -3,17 +3,22 @@ LibXDiff(3)                File Differential Library               LibXDiff(3)
 
 
 NAME
-       xdl_init_mmfile, xdl_free_mmfile, xdl_mmfile_iscompact,
-       xdl_seek_mmfile, xdl_read_mmfile, xdl_write_mmfile, xdl_writem_mmfile,
+       xdl_set_allocator, xdl_malloc, xdl_free, xdl_realloc, xdl_init_mmfile,
+       xdl_free_mmfile, xdl_mmfile_iscompact, xdl_seek_mmfile,
+       xdl_read_mmfile, xdl_write_mmfile, xdl_writem_mmfile,
        xdl_mmfile_writeallocate, xdl_mmfile_first, xdl_mmfile_next,
        xdl_mmfile_size, xdl_mmfile_cmp, xdl_mmfile_compact, xdl_diff,
-       xdl_patch, xdl_bdiff, xdl_bdiff_tgsize, xdl_bpatch - File Differential
-       Library support functions
+       xdl_patch, xdl_merge3, xdl_bdiff, xdl_bdiff_tgsize, xdl_bpatch - File
+       Differential Library support functions
 
 
 SYNOPSIS
        #include <xdiff.h>
 
+       int xdl_set_allocator(memallocator_t const *malt);
+       void *xdl_malloc(unsigned int size);
+       void xdl_free(void *ptr);
+       void *xdl_realloc(void *ptr, unsigned int nsize);
        int xdl_init_mmfile(mmfile_t *mmf, long bsize, unsigned long flags);
        void xdl_free_mmfile(mmfile_t *mmf);
        int xdl_mmfile_iscompact(mmfile_t *mmf);
@@ -29,6 +34,7 @@ SYNOPSIS
        int xdl_mmfile_compact(mmfile_t *mmfo, mmfile_t *mmfc, long bsize, unsigned long flags);
        int xdl_diff(mmfile_t *mmf1, mmfile_t *mmf2, xpparam_t const *xpp, xdemitconf_t const *xecfg, xdemitcb_t *ecb);
        int xdl_patch(mmfile_t *mmf, mmfile_t *mmfp, int mode, xdemitcb_t *ecb, xdemitcb_t *rjecb);
+       int xdl_merge3(mmfile_t *mmfo, mmfile_t *mmf1, mmfile_t *mmf2, xdemitcb_t *ecb, xdemitcb_t *rjecb);
        int xdl_bdiff(mmfile_t *mmf1, mmfile_t *mmf2, bdiffparam_t const *bdp, xdemitcb_t *ecb);
        long xdl_bdiff_tgsize(mmfile_t *mmfp);
        int xdl_bpatch(mmfile_t *mmf, mmfile_t *mmfp, xdemitcb_t *ecb);
@@ -66,6 +72,63 @@ DESCRIPTION
    Functions
        The following functions are defined:
 
+       int xdl_set_allocator(memallocator_t const *malt);
+
+              The LibXDiff library enable the user to set its own memory allo-
+              cator, that will be used for all the following memory requests.
+              The allocator must be set before to start calling the LibXDiff
+              library with a call to xdl_set_allocator().  The memory alloca-
+              tor structure contains the following members:
+
+                   typedef struct s_memallocator {
+                        void *(*malloc)(unsigned int size);
+                        void (*free)(void * ptr);
+                        void *(*realloc)(void *ptr, unsigned int nsize);
+                   } memallocator_t;
+
+              The malloc() function pointer will be used by LibXDiff to
+              request a memory block of size bytes. The free() function
+              pointer will be called to free a previously allocated block ptr
+              , while the realloc() will be used to resize the ptr to a new
+              nsize size in bytes. The LibXDiff user must call xdl_set_alloca-
+              tor() before starting using the library, otherwise LibXDiff
+              functions will fail due to the lack of memory allocation sup-
+              port.  A typical initialization sequence for POSIX systems will
+              use the standard malloc(3), free(3), realloc(3) and will look
+              like:
+
+                   memallocator_t malt;
+
+                   malt.malloc = malloc;
+                   malt.free = free;
+                   malt.realloc = realloc;
+                   xdl_set_allocator(&malt);
+
+
+
+       void *xdl_malloc(unsigned int size);
+
+              Allocates a memory block of size bytes using the LibXDiff memory
+              allocator. The user can specify its own allocator using the
+              xdl_set_allocator() function. The xdl_malloc() return a pointer
+              to the newly allocated block, or NULL in case of failure.
+
+
+       void xdl_free(void *ptr);
+
+              Free a previously allocated memory block pointed by ptr.  The
+              ptr block must has been allocated using either xdl_malloc() or
+              xdl_realloc().
+
+
+       void *xdl_realloc(void *ptr, unsigned int nsize);
+
+              Resizes the memory block pointed by ptr to a new size nsize.
+              Return the resized block if successful, or NULL in case the
+              reallocation fails. After a successful reallocation, the old ptr
+              block is to be considered no more valid.
+
+
        int xdl_init_mmfile(mmfile_t *mmf, long bsize, unsigned long flags);
 
               Initialize the memory file mmf by requiring an internal block
@@ -75,6 +138,9 @@ DESCRIPTION
               XDL_MMF_ATOMIC Writes on the memory file will be atomic. That
               is, the data will not be split on two or more different blocks.
 
+              Once an xdl_init_mmfile() succeeded, a matching
+              xdl_free_mmfile() must be called when the user has done using
+              the memory file, otherwise serious memory leaks will happen.
               The function return 0 if succeed or -1 if an error is encoun-
               tered.
 
@@ -112,8 +178,12 @@ DESCRIPTION
               Request to write size bytes from the specified buffer data into
               the memory file mmf.  If the memory file has been created using
               the XDL_MMF_ATOMIC flag, the write request will not be split
-              across different blocks.  The function returns the number of
-              bytes written or a number lower than size if an error happened.
+              across different blocks.  Note that all write operations done on
+              memory files do append data at the end the file, and writes in
+              the middle of it are allowed. This is because the library memory
+              file abstraction does not need this functionality to be avail-
+              able.  The function returns the number of bytes written or a
+              number lower than size if an error happened.
 
 
        long xdl_writem_mmfile(mmfile_t *mmf, mmbuffer_t *mb, int nbuf);
@@ -129,8 +199,8 @@ DESCRIPTION
 
               The ptr field is a pointer to the user data, whose size is spec-
               ified inside the size structure field. The function returns the
-              total number of bytes written or a lower number if an error hap-
-              pened.
+              total number of bytes written or a lower number if an error
+              happened.
 
 
        void *xdl_mmfile_writeallocate(mmfile_t *mmf, long size);
@@ -262,12 +332,30 @@ DESCRIPTION
               result of the operation will then be the file content that was
               used as "old" file during the differential operation.
 
-              The ecb will be use by the patch algorithm to create the result
+              The ecb will be used by the patch algorithm to create the result
               file while the rjecb will be used to emit all differential
               chunks that cannot be applied.  Like explained above, callbacks
               are always called with entire records to guarantee atomicity of
-              the resulting output.  The function returns 0 if succeeded or -1
-              if an error occurred during the patch operation.
+              the resulting output.  The function returns 0 if succeeded with-
+              out performing any fuzzy hunk detection, a positive value if it
+              secceeded with fuzzy hunk detection or -1 if an error occurred
+              during the patch operation.
+
+
+       int xdl_merge3(mmfile_t *mmfo, mmfile_t *mmf1, mmfile_t *mmf2,
+       xdemitcb_t *ecb, xdemitcb_t *rjecb);
+
+              Merges three files together. The mmfo file is the original one,
+              while mmf1 and mmf2 are two modified versions of mmfo.  The
+              function works by creating a differential between mmfo and mmf2
+              and by applying the resulting patch to mmf1.  Because of this
+              sequence, mmf1 changes will be privileged against the ones of
+              mmf2.  The ecb will be used by the patch algorithm to create the
+              result file while the rjecb will be used to emit all differen-
+              tial chunks that cannot be applied.  Like explained above, call-
+              backs are always called with entire records to guarantee atomic-
+              ity of the resulting output.  The function returns 0 if suc-
+              ceeded or -1 if an error occurred during the patch operation.
 
 
        int xdl_bdiff(mmfile_t *mmf1, mmfile_t *mmf2, bdiffparam_t const *bdp,
@@ -403,4 +491,4 @@ BUGS
 
 
 
-GNU                                   0.2                          LibXDiff(3)
+GNU                                   0.6                          LibXDiff(3)

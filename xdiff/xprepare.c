@@ -72,7 +72,7 @@ static int xdl_init_classifier(xdlclassifier_t *cf, long size) {
 
 		return -1;
 	}
-	if (!(cf->rchash = (xdlclass_t **) malloc(cf->hsize * sizeof(xdlclass_t *)))) {
+	if (!(cf->rchash = (xdlclass_t **) xdl_malloc(cf->hsize * sizeof(xdlclass_t *)))) {
 
 		xdl_cha_free(&cf->ncha);
 		return -1;
@@ -88,7 +88,7 @@ static int xdl_init_classifier(xdlclassifier_t *cf, long size) {
 
 static void xdl_free_classifier(xdlclassifier_t *cf) {
 
-	free(cf->rchash);
+	xdl_free(cf->rchash);
 	xdl_cha_free(&cf->ncha);
 }
 
@@ -146,7 +146,7 @@ static int xdl_prepare_ctx(mmfile_t *mf, long narec, xpparam_t const *xpp,
 
 		return -1;
 	}
-	if (!(recs = (xrecord_t **) malloc(narec * sizeof(xrecord_t *)))) {
+	if (!(recs = (xrecord_t **) xdl_malloc(narec * sizeof(xrecord_t *)))) {
 
 		xdl_cha_free(&xdf->rcha);
 		return -1;
@@ -154,9 +154,9 @@ static int xdl_prepare_ctx(mmfile_t *mf, long narec, xpparam_t const *xpp,
 
 	hbits = xdl_hashbits((unsigned int) narec);
 	hsize = 1 << hbits;
-	if (!(rhash = (xrecord_t **) malloc(hsize * sizeof(xrecord_t *)))) {
+	if (!(rhash = (xrecord_t **) xdl_malloc(hsize * sizeof(xrecord_t *)))) {
 
-		free(recs);
+		xdl_free(recs);
 		xdl_cha_free(&xdf->rcha);
 		return -1;
 	}
@@ -175,10 +175,10 @@ static int xdl_prepare_ctx(mmfile_t *mf, long narec, xpparam_t const *xpp,
 			hav = xdl_hash_record(&cur, top);
 			if (nrec >= narec) {
 				narec *= 2;
-				if (!(rrecs = (xrecord_t **) realloc(recs, narec * sizeof(xrecord_t *)))) {
+				if (!(rrecs = (xrecord_t **) xdl_realloc(recs, narec * sizeof(xrecord_t *)))) {
 
-					free(rhash);
-					free(recs);
+					xdl_free(rhash);
+					xdl_free(recs);
 					xdl_cha_free(&xdf->rcha);
 					return -1;
 				}
@@ -186,8 +186,8 @@ static int xdl_prepare_ctx(mmfile_t *mf, long narec, xpparam_t const *xpp,
 			}
 			if (!(crec = xdl_cha_alloc(&xdf->rcha))) {
 
-				free(rhash);
-				free(recs);
+				xdl_free(rhash);
+				xdl_free(recs);
 				xdl_cha_free(&xdf->rcha);
 				return -1;
 			}
@@ -198,37 +198,37 @@ static int xdl_prepare_ctx(mmfile_t *mf, long narec, xpparam_t const *xpp,
 
 			if (xdl_classify_record(cf, rhash, hbits, crec) < 0) {
 
-				free(rhash);
-				free(recs);
+				xdl_free(rhash);
+				xdl_free(recs);
 				xdl_cha_free(&xdf->rcha);
 				return -1;
 			}
 		}
 	}
 
-	if (!(rchg = (char *) malloc((nrec + 2) * sizeof(char)))) {
+	if (!(rchg = (char *) xdl_malloc((nrec + 2) * sizeof(char)))) {
 
-		free(rhash);
-		free(recs);
+		xdl_free(rhash);
+		xdl_free(recs);
 		xdl_cha_free(&xdf->rcha);
 		return -1;
 	}
 	memset(rchg, 0, (nrec + 2) * sizeof(char));
 
-	if (!(rindex = (long *) malloc((nrec + 1) * sizeof(long)))) {
+	if (!(rindex = (long *) xdl_malloc((nrec + 1) * sizeof(long)))) {
 
-		free(rchg);
-		free(rhash);
-		free(recs);
+		xdl_free(rchg);
+		xdl_free(rhash);
+		xdl_free(recs);
 		xdl_cha_free(&xdf->rcha);
 		return -1;
 	}
-	if (!(ha = (unsigned long *) malloc((nrec + 1) * sizeof(unsigned long)))) {
+	if (!(ha = (unsigned long *) xdl_malloc((nrec + 1) * sizeof(unsigned long)))) {
 
-		free(rindex);
-		free(rchg);
-		free(rhash);
-		free(recs);
+		xdl_free(rindex);
+		xdl_free(rchg);
+		xdl_free(rhash);
+		xdl_free(recs);
 		xdl_cha_free(&xdf->rcha);
 		return -1;
 	}
@@ -250,11 +250,11 @@ static int xdl_prepare_ctx(mmfile_t *mf, long narec, xpparam_t const *xpp,
 
 static void xdl_free_ctx(xdfile_t *xdf) {
 
-	free(xdf->rhash);
-	free(xdf->rindex);
-	free(xdf->rchg - 1);
-	free(xdf->ha);
-	free(xdf->recs);
+	xdl_free(xdf->rhash);
+	xdl_free(xdf->rindex);
+	xdl_free(xdf->rchg - 1);
+	xdl_free(xdf->ha);
+	xdl_free(xdf->recs);
 	xdl_cha_free(&xdf->rcha);
 }
 
@@ -338,7 +338,7 @@ static int xdl_cleanup_records(xdfile_t *xdf1, xdfile_t *xdf2) {
 	xrecord_t *rec;
 	char *dis, *dis1, *dis2;
 
-	if (!(dis = (char *) malloc((xdf1->nrec + xdf2->nrec + 2) * sizeof(char)))) {
+	if (!(dis = (char *) xdl_malloc((xdf1->nrec + xdf2->nrec + 2) * sizeof(char)))) {
 
 		return -1;
 	}
@@ -386,7 +386,7 @@ static int xdl_cleanup_records(xdfile_t *xdf1, xdfile_t *xdf2) {
 	}
 	xdf2->nreff = nreff;
 
-	free(dis);
+	xdl_free(dis);
 
 	return 0;
 }

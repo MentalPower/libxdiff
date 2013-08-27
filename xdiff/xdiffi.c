@@ -31,18 +31,6 @@
 #define XDL_K_HEUR 4
 
 
-typedef struct s_diffdata {
-	long nrec;
-	unsigned long const *ha;
-	long *rindex;
-	char *rchg;
-} diffdata_t;
-
-typedef struct s_xdalgoenv {
-	long mxcost;
-	long snake_cnt;
-	long heur_min;
-} xdalgoenv_t;
 
 typedef struct s_xdpsplit {
 	long i1, i2;
@@ -56,9 +44,6 @@ static long xdl_split(unsigned long const *ha1, long off1, long lim1,
 		      unsigned long const *ha2, long off2, long lim2,
 		      long *kvdf, long *kvdb, int need_min, xdpsplit_t *spl,
 		      xdalgoenv_t *xenv);
-static int xdl_recs_cmp(diffdata_t *dd1, long off1, long lim1,
-			diffdata_t *dd2, long off2, long lim2,
-			long *kvdf, long *kvdb, int need_min, xdalgoenv_t *xenv);
 static xdchange_t *xdl_add_change(xdchange_t *xscr, long i1, long i2, long chg1, long chg2);
 
 
@@ -281,9 +266,9 @@ static long xdl_split(unsigned long const *ha1, long off1, long lim1,
  * the box splitting function. Note that the real job (marking changed lines)
  * is done in the two boundary reaching checks.
  */
-static int xdl_recs_cmp(diffdata_t *dd1, long off1, long lim1,
-			diffdata_t *dd2, long off2, long lim2,
-			long *kvdf, long *kvdb, int need_min, xdalgoenv_t *xenv) {
+int xdl_recs_cmp(diffdata_t *dd1, long off1, long lim1,
+		 diffdata_t *dd2, long off2, long lim2,
+		 long *kvdf, long *kvdb, int need_min, xdalgoenv_t *xenv) {
 	unsigned long const *ha1 = dd1->ha, *ha2 = dd2->ha;
 
 	/*
@@ -354,7 +339,7 @@ int xdl_do_diff(mmfile_t *mf1, mmfile_t *mf2, xpparam_t const *xpp,
 	 * One is to store the forward path and one to store the backward path.
 	 */
 	ndiags = xe->xdf1.nreff + xe->xdf2.nreff + 3;
-	if (!(kvd = (long *) malloc(2 * ndiags * sizeof(long)))) {
+	if (!(kvd = (long *) xdl_malloc(2 * ndiags * sizeof(long)))) {
 
 		xdl_free_env(xe);
 		return -1;
@@ -364,6 +349,9 @@ int xdl_do_diff(mmfile_t *mf1, mmfile_t *mf2, xpparam_t const *xpp,
 	kvdf += xe->xdf2.nreff;
 	kvdb += xe->xdf2.nreff;
 
+	/*
+	 * Classical integer square root approximation using shifts.
+	 */
 	xenv.mxcost = 1;
 	for (; ndiags; ndiags >>= 2)
 		xenv.mxcost <<= 1;
@@ -384,12 +372,12 @@ int xdl_do_diff(mmfile_t *mf1, mmfile_t *mf2, xpparam_t const *xpp,
 	if (xdl_recs_cmp(&dd1, 0, dd1.nrec, &dd2, 0, dd2.nrec,
 			 kvdf, kvdb, (xpp->flags & XDF_NEED_MINIMAL) != 0, &xenv) < 0) {
 
-		free(kvd);
+		xdl_free(kvd);
 		xdl_free_env(xe);
 		return -1;
 	}
 
-	free(kvd);
+	xdl_free(kvd);
 
 	return 0;
 }
@@ -398,7 +386,7 @@ int xdl_do_diff(mmfile_t *mf1, mmfile_t *mf2, xpparam_t const *xpp,
 static xdchange_t *xdl_add_change(xdchange_t *xscr, long i1, long i2, long chg1, long chg2) {
 	xdchange_t *xch;
 
-	if (!(xch = (xdchange_t *) malloc(sizeof(xdchange_t))))
+	if (!(xch = (xdchange_t *) xdl_malloc(sizeof(xdchange_t))))
 		return NULL;
 
 	xch->next = xscr;
@@ -442,7 +430,7 @@ void xdl_free_script(xdchange_t *xscr) {
 
 	while ((xch = xscr) != NULL) {
 		xscr = xscr->next;
-		free(xch);
+		xdl_free(xch);
 	}
 }
 

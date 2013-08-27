@@ -24,6 +24,11 @@
 #define XBDIFF_H
 
 
+#define XDL_BPATCH_HDR_SIZE (4 + 4)
+
+
+
+unsigned long xdl_mmf_adler32(mmfile_t *mmf);
 
 
 

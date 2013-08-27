@@ -27,6 +27,7 @@
 
 int xdl_emit_diffrec(char const *rec, long size, char const *pre, long psize,
 		     xdemitcb_t *ecb);
+int xdl_mmfile_outf(void *priv, mmbuffer_t *mb, int nbuf);
 int xdl_cha_init(chastore_t *cha, long isize, long icount);
 void xdl_cha_free(chastore_t *cha);
 void *xdl_cha_alloc(chastore_t *cha);

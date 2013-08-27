@@ -40,6 +40,12 @@ int main(int argc, char *argv[]) {
 	xpparam_t xpp;
 	xdemitconf_t xecfg;
 	bdiffparam_t bdp;
+	memallocator_t malt;
+
+	malt.malloc = malloc;
+	malt.free = free;
+	malt.realloc = realloc;
+	xdl_set_allocator(&malt);
 
 	xpp.flags = 0;
 	xecfg.ctxlen = 3;

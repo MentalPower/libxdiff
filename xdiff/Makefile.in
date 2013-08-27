@@ -87,7 +87,7 @@ install_sh = @install_sh@
 include_HEADERS = xdiff.h
 
 lib_LIBRARIES = libxdiff.a
-libxdiff_a_SOURCES = xdiffi.c xprepare.c xpatchi.c xemit.c xmissing.c xutils.c xadler32.c xbdiff.c xbpatchi.c
+libxdiff_a_SOURCES = xdiffi.c xprepare.c xpatchi.c xmerge3.c xemit.c xmissing.c xutils.c xadler32.c xbdiff.c xbpatchi.c xversion.c xalloc.c
 subdir = xdiff
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
@@ -97,9 +97,10 @@ LIBRARIES = $(lib_LIBRARIES)
 libxdiff_a_AR = $(AR) cru
 libxdiff_a_LIBADD =
 am_libxdiff_a_OBJECTS = xdiffi.$(OBJEXT) xprepare.$(OBJEXT) \
-	xpatchi.$(OBJEXT) xemit.$(OBJEXT) xmissing.$(OBJEXT) \
-	xutils.$(OBJEXT) xadler32.$(OBJEXT) xbdiff.$(OBJEXT) \
-	xbpatchi.$(OBJEXT)
+	xpatchi.$(OBJEXT) xmerge3.$(OBJEXT) xemit.$(OBJEXT) \
+	xmissing.$(OBJEXT) xutils.$(OBJEXT) xadler32.$(OBJEXT) \
+	xbdiff.$(OBJEXT) xbpatchi.$(OBJEXT) xversion.$(OBJEXT) \
+	xalloc.$(OBJEXT)
 libxdiff_a_OBJECTS = $(am_libxdiff_a_OBJECTS)
 
 DEFS = @DEFS@
@@ -109,11 +110,12 @@ LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
-@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/xadler32.Po ./$(DEPDIR)/xbdiff.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/xbpatchi.Po ./$(DEPDIR)/xdiffi.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/xemit.Po ./$(DEPDIR)/xmissing.Po \
+@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/xadler32.Po ./$(DEPDIR)/xalloc.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/xbdiff.Po ./$(DEPDIR)/xbpatchi.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/xdiffi.Po ./$(DEPDIR)/xemit.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/xmerge3.Po ./$(DEPDIR)/xmissing.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/xpatchi.Po ./$(DEPDIR)/xprepare.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/xutils.Po
+@AMDEP_TRUE@	./$(DEPDIR)/xutils.Po ./$(DEPDIR)/xversion.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) \
@@ -181,14 +183,17 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xadler32.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xalloc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xbdiff.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xbpatchi.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xdiffi.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xemit.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xmerge3.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xmissing.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xpatchi.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xprepare.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xutils.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xversion.Po@am__quote@
 
 distclean-depend:
 	-rm -rf ./$(DEPDIR)

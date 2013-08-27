@@ -45,8 +45,20 @@ static int xdlt_outf(void *priv, mmbuffer_t *mb, int nbuf) {
 }
 
 
+void usage(char const *prg) {
+
+	fprintf(stderr,
+		"use: %s  --diff    from-file  to-file\n"
+		"     %s  --patch   orig-file  patch-file\n"
+		"     %s  --bdiff   from-file  to-file\n"
+		"     %s  --bpatch  orig-file  patch-file\n",
+		prg, prg, prg, prg);
+}
+
+
 int main(int argc, char *argv[]) {
-	int do_diff, do_bdiff, do_bpatch;
+	int do_diff, do_patch, do_bdiff, do_bpatch;
+	memallocator_t malt;
 	mmfile_t mf1, mf2;
 	xpparam_t xpp;
 	xdemitconf_t xecfg;
@@ -54,13 +66,28 @@ int main(int argc, char *argv[]) {
 	xdemitcb_t ecb, rjecb;
 
 	if (argc < 4) {
-		fprintf(stderr, "use: %s {d,p} file1 file2\n", argv[0]);
+		usage(argv[0]);
 		return 1;
 	}
 
-	do_diff = argv[1][0] == 'd' || argv[1][0] == 'D';
-	do_bdiff = argv[1][0] == 'b' || argv[1][0] == 'B';
-	do_bpatch = argv[1][0] == 'x' || argv[1][0] == 'X';
+	malt.malloc = malloc;
+	malt.free = free;
+	malt.realloc = realloc;
+	xdl_set_allocator(&malt);
+
+	do_diff = do_patch = do_bdiff = do_bpatch = 0;
+	if (!strcmp(argv[1], "--diff"))
+		do_diff = 1;
+	else if (!strcmp(argv[1], "--patch"))
+		do_patch = 1;
+	else if (!strcmp(argv[1], "--bdiff"))
+		do_bdiff = 1;
+	else if (!strcmp(argv[1], "--bpatch"))
+		do_bpatch = 1;
+	else {
+		usage(argv[0]);
+		return 1;
+	}
 
 	xpp.flags = 0;
 	xecfg.ctxlen = 3;
@@ -86,7 +113,7 @@ int main(int argc, char *argv[]) {
 			xdl_free_mmfile(&mf1);
 			return 3;
 		}
-	} if (do_bdiff) {
+	} else if (do_bdiff) {
 		ecb.priv = stdout;
 		ecb.outf = xdlt_outf;
 
@@ -107,7 +134,7 @@ int main(int argc, char *argv[]) {
 			return 5;
 		}
 
-	} else {
+	} else if (do_patch) {
 		ecb.priv = stdout;
 		ecb.outf = xdlt_outf;
 		rjecb.priv = stderr;

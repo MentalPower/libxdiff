@@ -19,7 +19,7 @@ functionalities to create file differences/patches to both binary and
 text files. The library uses memory files as file abstraction to achieve
 both performance and portability. For binary files, <b>LibXDiff</b>
 implements (with some modification) the algorithm described in <i>File
-System Support for Delta Compression</i> by <i>Joshua P. MacDonald</i>, 
+System Support for Delta Compression</i> by <i>Joshua P. MacDonald</i>,
 while for text files it follows directives described in <i>An O(ND)
 Difference Algorithm and Its Variations</i> by <i>Eugene W. Myers</i>.
 Memory files used by the library are basically a collection of buffers
@@ -41,29 +41,50 @@ The output format of the binary patch file is proprietary (and binary)
 and it is basically a collection of copy and insert commands, like
 described inside the MacDonald paper. The library is compatible with
 almost every Unix implementation (configure script) and it is also
-compatible with Windows through custom (nmake) make files.<br>
+compatible with Windows through custom (nmake) make files. Examples are
+available inside the <span style="font-style: italic;">test</span>
+subdirectory of the distribution tarball that show how to use the
+library. Also, inside the same subdirectory, a regression test in
+available that tests the library with random data by requiring a diff
+followed by a patch and comparing results. Regression tests ran
+successfully for days on my Linux, Solaris, FreeBSD and Windows boxes,
+and this makes me believe that the library itself is completely ready
+for production (despite the version number).<br>
 </p>
 <p align="left"><br>
 </p>
 <p style="text-align: center;"><b><font size="+1">Documentation<br>
 </font></b></p>
 <div style="text-align: left;"><br>
-The <span style="font-weight: bold;">LibXDiff</span> library man page is
-available : <a href="xdiff.html">HTML</a>&nbsp;&nbsp;&nbsp;<a
+The <span style="font-weight: bold;">LibXDiff</span> library man page
+is available : <a href="xdiff.html">HTML</a>&nbsp;&nbsp;&nbsp;<a
  href="xdiff.txt">TXT</a>&nbsp;&nbsp;&nbsp; <a href="xdiff.pdf">PDF<br>
 </a><br>
 <br>
 </div>
 <p align="center"><b><font size="+1">License and Software</font></b></p>
-<p align="left"><span style="font-weight: bold;">LibXDiff</span>&nbsp; is
-made available through the <a
+<p align="left"><span style="font-weight: bold;">LibXDiff</span>&nbsp;
+is made available through the <a
  href="http://www.gnu.org/copyleft/lesser.html">GNU LGPL</a> license
 together with the complete sources. Please read carefully the <a
  href="http://www.gnu.org/copyleft/lesser.html">license</a> before using
 the software. The latest library package is available here :</p>
-<p align="left"><a href="http://www.xmailserver.org/libxdiff-0.2.tar.gz">Version
-0.2</a></p>
+<p align="left"><a href="http://www.xmailserver.org/libxdiff-0.6.tar.gz">Version
+0.6</a></p>
 <p align="left"><br>
-&nbsp;</p>
+</p>
+<p style="text-align: center;"><b><font size="+1">Links And Docs<br>
+</font></b></p>
+<div style="text-align: left;"><a
+ href="http://freshmeat.net/projects/xdiff-lib">LibXDiff FreshMeat Home
+Page</a><a href="http://www.gnu.org/software/diffutils/diffutils.html"><br>
+GNU DiffUtil</a><br>
+<a href="diff2.pdf"><span style="font-style: italic;">An O(ND)
+Difference Algorithm and Its Variations</span> by <i>Eugene W. Myers</i></a><br>
+<a href="xdfs.pdf"><i>File System Support for Delta Compression</i> by <i>Joshua
+P. MacDonald</i></a><br>
+<br>
+<br>
+</div>
 </body>
 </html>

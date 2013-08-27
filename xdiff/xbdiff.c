@@ -27,6 +27,7 @@
 #define XDL_INSBATCH_MAX 255
 #define XDL_BDIFF_BIGMATCH 8
 #define XDL_MIN_BLKSIZE 16
+#define XDL_COPYOP_SIZE (1 + 4 + 4)
 
 
 
@@ -62,7 +63,7 @@ static int xdl_prepare_bdfile(mmfile_t *mmf, long fpbsize, bdfile_t *bdf) {
 	fsize = xdl_mmfile_size(mmf);
 	fphbits = xdl_hashbits((unsigned int) (fsize / fpbsize) + 1);
 	hsize = 1 << fphbits;
-	if (!(fphash = (bdrecord_t **) malloc(hsize * sizeof(bdrecord_t *)))) {
+	if (!(fphash = (bdrecord_t **) xdl_malloc(hsize * sizeof(bdrecord_t *)))) {
 
 		return -1;
 	}
@@ -71,7 +72,7 @@ static int xdl_prepare_bdfile(mmfile_t *mmf, long fpbsize, bdfile_t *bdf) {
 
 	if (xdl_cha_init(&bdf->cha, sizeof(bdrecord_t), hsize / 4 + 1) < 0) {
 
-		free(fphash);
+		xdl_free(fphash);
 		return -1;
 	}
 
@@ -88,7 +89,7 @@ static int xdl_prepare_bdfile(mmfile_t *mmf, long fpbsize, bdfile_t *bdf) {
 			if (!(brec = (bdrecord_t *) xdl_cha_alloc(&bdf->cha))) {
 
 				xdl_cha_free(&bdf->cha);
-				free(fphash);
+				xdl_free(fphash);
 				return -1;
 			}
 
@@ -111,8 +112,22 @@ static int xdl_prepare_bdfile(mmfile_t *mmf, long fpbsize, bdfile_t *bdf) {
 
 static void xdl_free_bdfile(bdfile_t *bdf) {
 
-	free(bdf->fphash);
+	xdl_free(bdf->fphash);
 	xdl_cha_free(&bdf->cha);
+}
+
+
+unsigned long xdl_mmf_adler32(mmfile_t *mmf) {
+	unsigned long fp = 0;
+	long size;
+	char const *blk;
+
+	if ((blk = (char const *) xdl_mmfile_first(mmf, &size)) != NULL) {
+		do {
+			fp = xdl_adler32(fp, (unsigned char const *) blk, size);
+		} while ((blk = (char const *) xdl_mmfile_next(mmf, &size)) != NULL);
+	}
+	return fp;
 }
 
 
@@ -136,6 +151,25 @@ int xdl_bdiff(mmfile_t *mmf1, mmfile_t *mmf2, bdiffparam_t const *bdp, xdemitcb_
 		return -1;
 	}
 
+	/*
+	 * Prepare and emit the binary patch file header. It will be used
+	 * to verify that that file being patched matches in size and fingerprint
+	 * the one that generated the patch.
+	 */
+	fp = xdl_mmf_adler32(mmf1);
+	size = xdl_mmfile_size(mmf1);
+	XDL_LE32_PUT(cpybuf, fp);
+	XDL_LE32_PUT(cpybuf + 4, size);
+
+	mb.ptr = (char *) cpybuf;
+	mb.size = 4 + 4;
+
+	if (ecb->outf(ecb->priv, &mb, 1) < 0) {
+
+		xdl_free_bdfile(&bdf);
+		return -1;
+	}
+
 	if ((blk = (char const *) xdl_mmfile_first(mmf2, &size)) != NULL) {
 		for (ibufcnt = 0, data = blk, top = data + size; data < top;) {
 			rsize = XDL_MIN(bsize, (long) (top - data));
@@ -155,7 +189,7 @@ int xdl_bdiff(mmfile_t *mmf1, mmfile_t *mmf2, bdiffparam_t const *bdp, xdemitcb_
 					}
 				}
 
-			if (msize < bsize) {
+			if (msize < XDL_COPYOP_SIZE) {
 				insbuf[2 + ibufcnt++] = (unsigned char) *data++;
 				if (ibufcnt == XDL_INSBATCH_MAX) {
 					insbuf[0] = XDL_BDOP_INS;
@@ -187,17 +221,14 @@ int xdl_bdiff(mmfile_t *mmf1, mmfile_t *mmf2, bdiffparam_t const *bdp, xdemitcb_
 					ibufcnt = 0;
 				}
 
-				fp = xdl_adler32(0, (unsigned char const *) data, msize);
-
 				data += msize;
 
 				cpybuf[0] = XDL_BDOP_CPY;
 				XDL_LE32_PUT(cpybuf + 1, moff);
 				XDL_LE32_PUT(cpybuf + 5, msize);
-				XDL_LE32_PUT(cpybuf + 9, fp);
 
 				mb.ptr = (char *) cpybuf;
-				mb.size = 1 + 4 + 4 + 4;
+				mb.size = XDL_COPYOP_SIZE;
 
 				if (ecb->outf(ecb->priv, &mb, 1) < 0) {
 
@@ -229,35 +260,38 @@ int xdl_bdiff(mmfile_t *mmf1, mmfile_t *mmf2, bdiffparam_t const *bdp, xdemitcb_
 
 long xdl_bdiff_tgsize(mmfile_t *mmfp) {
 	long tgsize = 0, size, off, csize;
-	unsigned long fp;
 	char const *blk;
 	unsigned char const *data, *top;
 
-	if ((blk = (char const *) xdl_mmfile_first(mmfp, &size)) != NULL) {
-		do {
-			for (data = (unsigned char const *) blk, top = data + size;
-			     data < top;) {
-				if (*data == XDL_BDOP_INS) {
-					data++;
-					csize = (long) *data++;
-					tgsize += csize;
-					data += csize;
-				} else if (*data == XDL_BDOP_CPY) {
-					data++;
-					XDL_LE32_GET(data, off);
-					data += 4;
-					XDL_LE32_GET(data, csize);
-					data += 4;
-					XDL_LE32_GET(data, fp);
-					data += 4;
-					tgsize += csize;
-				} else {
+	if ((blk = (char const *) xdl_mmfile_first(mmfp, &size)) == NULL ||
+	    size < XDL_BPATCH_HDR_SIZE) {
 
-					return -1;
-				}
-			}
-		} while ((blk = (char const *) xdl_mmfile_next(mmfp, &size)) != NULL);
+		return -1;
 	}
+	blk += XDL_BPATCH_HDR_SIZE;
+	size -= XDL_BPATCH_HDR_SIZE;
+
+	do {
+		for (data = (unsigned char const *) blk, top = data + size;
+		     data < top;) {
+			if (*data == XDL_BDOP_INS) {
+				data++;
+				csize = (long) *data++;
+				tgsize += csize;
+				data += csize;
+			} else if (*data == XDL_BDOP_CPY) {
+				data++;
+				XDL_LE32_GET(data, off);
+				data += 4;
+				XDL_LE32_GET(data, csize);
+				data += 4;
+				tgsize += csize;
+			} else {
+
+				return -1;
+			}
+		}
+	} while ((blk = (char const *) xdl_mmfile_next(mmfp, &size)) != NULL);
 
 	return tgsize;
 }

@@ -19,17 +19,26 @@
 .\"  Davide Libenzi <davidel@xmailserver.org>
 .\"
 .na
-.TH LibXDiff 3 "0.2" "GNU" "File Differential Library"
+.TH LibXDiff 3 "0.6" "GNU" "File Differential Library"
 .SH NAME
-xdl_init_mmfile, xdl_free_mmfile, xdl_mmfile_iscompact, xdl_seek_mmfile, xdl_read_mmfile,
-xdl_write_mmfile, xdl_writem_mmfile, xdl_mmfile_writeallocate, xdl_mmfile_first,
-xdl_mmfile_next, xdl_mmfile_size, xdl_mmfile_cmp, xdl_mmfile_compact,
-xdl_diff, xdl_patch, xdl_bdiff, xdl_bdiff_tgsize, xdl_bpatch \- File Differential Library support functions
+
+xdl_set_allocator, xdl_malloc, xdl_free, xdl_realloc, xdl_init_mmfile, xdl_free_mmfile,
+xdl_mmfile_iscompact, xdl_seek_mmfile, xdl_read_mmfile, xdl_write_mmfile, xdl_writem_mmfile,
+xdl_mmfile_writeallocate, xdl_mmfile_first, xdl_mmfile_next, xdl_mmfile_size, xdl_mmfile_cmp,
+xdl_mmfile_compact, xdl_diff, xdl_patch, xdl_merge3, xdl_bdiff, xdl_bdiff_tgsize, xdl_bpatch \- File Differential Library support functions
 
 .SH SYNOPSIS
 .nf
 .B #include <xdiff.h>
 .sp
+.BI "int xdl_set_allocator(memallocator_t const *" malt ");"
+.nl
+.BI "void *xdl_malloc(unsigned int " size ");"
+.nl
+.BI "void xdl_free(void *" ptr ");"
+.nl
+.BI "void *xdl_realloc(void *" ptr ", unsigned int " nsize ");"
+.nl
 .BI "int xdl_init_mmfile(mmfile_t *" mmf ", long " bsize ", unsigned long " flags ");"
 .nl
 .BI "void xdl_free_mmfile(mmfile_t *" mmf ");"
@@ -59,6 +68,8 @@ xdl_diff, xdl_patch, xdl_bdiff, xdl_bdiff_tgsize, xdl_bpatch \- File Differentia
 .BI "int xdl_diff(mmfile_t *" mmf1 ", mmfile_t *" mmf2 ", xpparam_t const *" xpp ", xdemitconf_t const *" xecfg ", xdemitcb_t *" ecb ");"
 .nl
 .BI "int xdl_patch(mmfile_t *" mmf ", mmfile_t *" mmfp ", int " mode ", xdemitcb_t *" ecb ", xdemitcb_t *" rjecb ");"
+.nl
+.BI "int xdl_merge3(mmfile_t *" mmfo ", mmfile_t *" mmf1 ", mmfile_t *" mmf2 ", xdemitcb_t *" ecb ", xdemitcb_t *" rjecb ");"
 .nl
 .BI "int xdl_bdiff(mmfile_t *" mmf1 ", mmfile_t *" mmf2 ", bdiffparam_t const *" bdp ", xdemitcb_t *" ecb ");"
 .nl
@@ -105,6 +116,108 @@ copy and insert commands, like described inside the MacDonald paper.
 .SS Functions
 The following functions are defined:
 .TP
+.BI "int xdl_set_allocator(memallocator_t const *" malt ");"
+
+The
+.B LibXDiff
+library enable the user to set its own memory allocator, that will be used
+for all the following memory requests. The allocator must be set before
+to start calling the
+.B LibXDiff
+library with a call to
+.BR xdl_set_allocator ().
+The memory allocator structure contains the following members:
+.nf
+
+	typedef struct s_memallocator {
+		void *(*malloc)(unsigned int size);
+		void (*free)(void * ptr);
+		void *(*realloc)(void *ptr, unsigned int nsize);
+	} memallocator_t;
+
+.fi
+The
+.BR malloc ()
+function pointer will be used by
+.B LibXDiff
+to request a memory block of
+.I size
+bytes. The
+.BR free ()
+function pointer will be called to free a previously allocated block
+.I ptr
+, while the
+.BR realloc ()
+will be used to resize the
+.I ptr
+to a new
+.I nsize
+size in bytes. The
+.B LibXDiff
+user must call
+.BR xdl_set_allocator ()
+before starting using the library, otherwise
+.B LibXDiff
+functions will fail due to the lack of memory allocation support.
+A typical initialization sequence for
+.B POSIX
+systems will use the standard
+.BR malloc (3),
+.BR free (3),
+.BR realloc (3)
+and will look like:
+.nf
+
+	memallocator_t malt;
+
+	malt.malloc = malloc;
+	malt.free = free;
+	malt.realloc = realloc;
+	xdl_set_allocator(&malt);
+
+.fi
+
+.TP
+.BI "void *xdl_malloc(unsigned int " size ");"
+
+Allocates a memory block of
+.I size
+bytes using the
+.B LibXDiff
+memory allocator. The user can specify its own allocator using the
+.BR xdl_set_allocator ()
+function. The
+.BR xdl_malloc ()
+return a pointer to the newly allocated block, or
+.B NULL
+in case of failure.
+
+.TP
+.BI "void xdl_free(void *" ptr ");"
+
+Free a previously allocated memory block pointed by
+.IR ptr .
+The
+.I ptr
+block must has been allocated using either
+.BR xdl_malloc ()
+or
+.BR xdl_realloc ().
+
+.TP
+.BI "void *xdl_realloc(void *" ptr ", unsigned int " nsize ");"
+
+Resizes the memory block pointed by
+.I ptr
+to a new size
+.IR nsize .
+Return the resized block if successful, or
+.B NULL
+in case the reallocation fails. After a successful reallocation, the old
+.I ptr
+block is to be considered no more valid.
+
+.TP
 .BI "int xdl_init_mmfile(mmfile_t *" mmf ", long " bsize ", unsigned long " flags ");"
 
 Initialize the memory file
@@ -120,6 +233,12 @@ parameter is a combination of the following flags :
 Writes on the memory file will be atomic. That is, the data will not be split
 on two or more different blocks.
 
+Once an
+.BR xdl_init_mmfile ()
+succeeded, a matching
+.BR xdl_free_mmfile ()
+must be called when the user has done using the memory file, otherwise serious
+memory leaks will happen.
 The function return 0 if succeed or -1 if an error is encountered.
 
 .TP
@@ -174,6 +293,9 @@ into the memory file
 If the memory file has been created using the
 .B XDL_MMF_ATOMIC
 flag, the write request will not be split across different blocks.
+Note that all write operations done on memory files do append data at the end
+the file, and writes in the middle of it are allowed. This is because the library
+memory file abstraction does not need this functionality to be available.
 The function returns the number of bytes written or a number lower than
 .I size
 if an error happened.
@@ -395,7 +517,35 @@ as "old" file during the differential operation.
 
 The
 .I ecb
-will be use by the patch algorithm to create the result file while the
+will be used by the patch algorithm to create the result file while the
+.I rjecb
+will be used to emit all differential chunks that cannot be applied.
+Like explained above, callbacks are always called with entire records to guarantee
+atomicity of the resulting output.
+The function returns 0 if succeeded without performing any fuzzy hunk detection,
+a positive value if it secceeded with fuzzy hunk detection or -1 if an error occurred
+during the patch operation.
+
+.TP
+.BI "int xdl_merge3(mmfile_t *" mmfo ", mmfile_t *" mmf1 ", mmfile_t *" mmf2 ", xdemitcb_t *" ecb ", xdemitcb_t *" rjecb ");"
+
+Merges three files together. The
+.I mmfo
+file is the original one, while
+.IR mmf1 " and " mmf2
+are two modified versions of
+.IR mmfo .
+The function works by creating a differential between
+.IR mmfo " and " mmf2
+and by applying the resulting patch to
+.IR mmf1 .
+Because of this sequence,
+.I mmf1
+changes will be privileged against the ones of
+.IR mmf2 .
+The
+.I ecb
+will be used by the patch algorithm to create the result file while the
 .I rjecb
 will be used to emit all differential chunks that cannot be applied.
 Like explained above, callbacks are always called with entire records to guarantee

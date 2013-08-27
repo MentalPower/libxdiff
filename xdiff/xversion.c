@@ -1,6 +1,6 @@
 /*
  *  LibXDiff by Davide Libenzi ( File Differential Library )
- *  Copyright (C) 2003  Davide Libenzi
+ *  Copyright (C) 2003	Davide Libenzi
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -20,23 +20,8 @@
  *
  */
 
-#if !defined(WINCONFIG_H)
-#define WINCONFIG_H
+#include "xinclude.h"
 
-#if !defined(PACKAGE_VERSION)
-#define PACKAGE_VERSION "0.6"
-#endif /* #if !defined(PACKAGE_VERSION) */
 
-#define HAVE_STDIO_H 1
-#define HAVE_STDLIB_H 1
-#define HAVE_STRING_H 1
-#define HAVE_LIMITS_H 1
-
-#define HAVE_MEMCHR 1
-#define HAVE_MEMCMP 1
-#define HAVE_MEMCPY 1
-#define HAVE_MEMSET 1
-#define HAVE_STRLEN 1
-
-#endif /* WINCONFIG_H */
+char libxdiff_version[] = "LibXDiff v" PACKAGE_VERSION " by Davide Libenzi <davide@xmailserver.org>";
 

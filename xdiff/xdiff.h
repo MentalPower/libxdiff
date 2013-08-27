@@ -39,6 +39,13 @@ extern "C" {
 #define XDL_BDOP_CPY 2
 
 
+
+typedef struct s_memallocator {
+	void *(*malloc)(unsigned int);
+	void (*free)(void *);
+	void *(*realloc)(void *, unsigned int);
+} memallocator_t;
+
 typedef struct s_mmblock {
 	struct s_mmblock *next;
 	long size, bsize;
@@ -74,6 +81,10 @@ typedef struct s_bdiffparam {
 } bdiffparam_t;
 
 
+int xdl_set_allocator(memallocator_t const *malt);
+void *xdl_malloc(unsigned int size);
+void xdl_free(void *ptr);
+void *xdl_realloc(void *ptr, unsigned int size);
 
 int xdl_init_mmfile(mmfile_t *mmf, long bsize, unsigned long flags);
 void xdl_free_mmfile(mmfile_t *mmf);
@@ -93,6 +104,9 @@ int xdl_diff(mmfile_t *mf1, mmfile_t *mf2, xpparam_t const *xpp,
 	     xdemitconf_t const *xecfg, xdemitcb_t *ecb);
 int xdl_patch(mmfile_t *mf, mmfile_t *mfp, int mode, xdemitcb_t *ecb,
 	      xdemitcb_t *rjecb);
+
+int xdl_merge3(mmfile_t *mmfo, mmfile_t *mmf1, mmfile_t *mmf2, xdemitcb_t *ecb,
+	       xdemitcb_t *rjecb);
 
 int xdl_bdiff(mmfile_t *mmf1, mmfile_t *mmf2, bdiffparam_t const *bdp, xdemitcb_t *ecb);
 long xdl_bdiff_tgsize(mmfile_t *mmfp);

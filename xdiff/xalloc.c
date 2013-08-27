@@ -1,6 +1,6 @@
 /*
  *  LibXDiff by Davide Libenzi ( File Differential Library )
- *  Copyright (C) 2003  Davide Libenzi
+ *  Copyright (C) 2003	Davide Libenzi
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public
@@ -20,23 +20,36 @@
  *
  */
 
-#if !defined(WINCONFIG_H)
-#define WINCONFIG_H
+#include "xinclude.h"
 
-#if !defined(PACKAGE_VERSION)
-#define PACKAGE_VERSION "0.6"
-#endif /* #if !defined(PACKAGE_VERSION) */
 
-#define HAVE_STDIO_H 1
-#define HAVE_STDLIB_H 1
-#define HAVE_STRING_H 1
-#define HAVE_LIMITS_H 1
 
-#define HAVE_MEMCHR 1
-#define HAVE_MEMCMP 1
-#define HAVE_MEMCPY 1
-#define HAVE_MEMSET 1
-#define HAVE_STRLEN 1
+static memallocator_t xmalt = {NULL, NULL, NULL};
 
-#endif /* WINCONFIG_H */
+
+
+int xdl_set_allocator(memallocator_t const *malt) {
+
+	xmalt = *malt;
+	return 0;
+}
+
+
+void *xdl_malloc(unsigned int size) {
+
+	return xmalt.malloc ? xmalt.malloc(size): NULL;
+}
+
+
+void xdl_free(void *ptr) {
+
+	if (xmalt.free)
+		xmalt.free(ptr);
+}
+
+
+void *xdl_realloc(void *ptr, unsigned int size) {
+
+	return xmalt.realloc ? xmalt.realloc(ptr, size): NULL;
+}
 
