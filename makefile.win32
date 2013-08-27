@@ -65,7 +65,8 @@ XDIFFLIB_OBJS= \
 	"$(OUTDIR)\xprepare.obj" \
 	"$(OUTDIR)\xversion.obj" \
 	"$(OUTDIR)\xalloc.obj" \
-	"$(OUTDIR)\xutils.obj"
+	"$(OUTDIR)\xutils.obj" \
+	"$(OUTDIR)\xrabdiff.obj"
 
 XREGRESSION_OBJS= \
 	"$(OUTDIR)\xregression.obj" \
@@ -146,6 +147,10 @@ SOURCE="$(XDIFF_SRCDIR)\xprepare.c"
 
 SOURCE="$(XDIFF_SRCDIR)\xutils.c"
 "$(OUTDIR)\xutils.obj" : $(SOURCE) "$(OUTDIR)"
+	$(CPP) $(CPP_FLAGS) $(SOURCE)
+
+SOURCE="$(XDIFF_SRCDIR)\xrabdiff.c"
+"$(OUTDIR)\xrabdiff.obj" : $(SOURCE) "$(OUTDIR)"
 	$(CPP) $(CPP_FLAGS) $(SOURCE)
 
 SOURCE="$(XDIFF_SRCDIR)\xversion.c"

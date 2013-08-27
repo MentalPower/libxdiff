@@ -1,3 +1,3 @@
 
-SUBDIRS = . xdiff test man
+SUBDIRS = . xdiff test tools man
 

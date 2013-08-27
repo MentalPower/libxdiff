@@ -24,7 +24,7 @@
 #define WINCONFIG_H
 
 #if !defined(PACKAGE_VERSION)
-#define PACKAGE_VERSION "0.20"
+#define PACKAGE_VERSION "0.21"
 #endif /* #if !defined(PACKAGE_VERSION) */
 
 #define HAVE_STDIO_H 1
@@ -37,6 +37,10 @@
 #define HAVE_MEMCPY 1
 #define HAVE_MEMSET 1
 #define HAVE_STRLEN 1
+
+#define XRABPLY_TYPE64 __int64
+#define XV64(v) ((xply_word) v ## UI64)
+
 
 #endif /* WINCONFIG_H */
 

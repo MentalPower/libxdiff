@@ -24,11 +24,6 @@
 
 
 
-#define XDL_MIN_BLKSIZE 16
-#define XDL_INSBOP_SIZE (1 + 4)
-#define XDL_COPYOP_SIZE (1 + 4 + 4)
-
-
 
 typedef struct s_bdrecord {
 	struct s_bdrecord *next;

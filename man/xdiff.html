@@ -2,7 +2,7 @@
 <HTML><HEAD><TITLE>Man page of LibXDiff</TITLE>
 </HEAD><BODY text="#0000FF" bgcolor="#FFFFFF">
 <H1>LibXDiff</H1>
-Section: File Differential Library (3)<BR>Updated: 0.20<BR><A HREF="#index">Index</A>
+Section: File Differential Library (3)<BR>Updated: 0.21<BR><A HREF="#index">Index</A>
 <A HREF="/cgi-bin/man/man2html">Return to Main Contents</A><HR>
 
 <A NAME="lbAB">&nbsp;</A>
@@ -12,7 +12,8 @@ Section: File Differential Library (3)<BR>Updated: 0.20<BR><A HREF="#index">Inde
 xdl_set_allocator, xdl_malloc, xdl_free, xdl_realloc, xdl_init_mmfile, xdl_free_mmfile,
 xdl_mmfile_iscompact, xdl_seek_mmfile, xdl_read_mmfile, xdl_write_mmfile, xdl_writem_mmfile,
 xdl_mmfile_writeallocate, xdl_mmfile_ptradd, xdl_mmfile_first, xdl_mmfile_next, xdl_mmfile_size, xdl_mmfile_cmp,
-xdl_mmfile_compact, xdl_diff, xdl_patch, xdl_merge3, xdl_bdiff_mb, xdl_bdiff, xdl_bdiff_tgsize, xdl_bpatch - File Differential Library support functions
+xdl_mmfile_compact, xdl_diff, xdl_patch, xdl_merge3, xdl_bdiff_mb, xdl_bdiff, xdl_rabdiff_mb, xdl_rabdiff,
+xdl_bdiff_tgsize, xdl_bpatch - File Differential Library support functions
 <P>
 <A NAME="lbAC">&nbsp;</A>
 <H2>SYNOPSIS</H2>
@@ -43,6 +44,8 @@ xdl_mmfile_compact, xdl_diff, xdl_patch, xdl_merge3, xdl_bdiff_mb, xdl_bdiff, xd
 <B>int xdl_merge3(mmfile_t *</B><I>mmfo</I><B>, mmfile_t *</B><I>mmf1</I><B>, mmfile_t *</B><I>mmf2</I><B>, xdemitcb_t *</B><I>ecb</I><B>, xdemitcb_t *</B><I>rjecb</I><B>);</B>
 <B>int xdl_bdiff_mb(mmbuffer_t *</B><I>mmb1</I><B>, mmbuffer_t *</B><I>mmb2</I><B>, bdiffparam_t const *</B><I>bdp</I><B>, xdemitcb_t *</B><I>ecb</I><B>);</B>
 <B>int xdl_bdiff(mmfile_t *</B><I>mmf1</I><B>, mmfile_t *</B><I>mmf2</I><B>, bdiffparam_t const *</B><I>bdp</I><B>, xdemitcb_t *</B><I>ecb</I><B>);</B>
+<B>int xdl_rabdiff_mb(mmbuffer_t *</B><I>mmb1</I><B>, mmbuffer_t *</B><I>mmb2</I><B>, xdemitcb_t *</B><I>ecb</I><B>);</B>
+<B>int xdl_rabdiff(mmfile_t *</B><I>mmf1</I><B>, mmfile_t *</B><I>mmf2</I><B>, xdemitcb_t *</B><I>ecb</I><B>);</B>
 <B>long xdl_bdiff_tgsize(mmfile_t *</B><I>mmfp</I><B>);</B>
 <B>int xdl_bpatch(mmfile_t *</B><I>mmf</I><B>, mmfile_t *</B><I>mmfp</I><B>, xdemitcb_t *</B><I>ecb</I><B>);</B>
 
@@ -58,10 +61,13 @@ uses memory files as file abstraction to achieve both performance and
 portability. For binary files,
 <B>LibXDiff</B>
 
-implements (with some modification) the algorithm described in
+implements both (with some modification) the algorithm described in
 <I>File System Support for Delta Compression</I> by <I>Joshua P. MacDonald</I>,
 
-while for text files it follows directives described in
+and the method described in
+<I>Fingerprinting by Random Polynomials</I> by <I>Michael O. Rabin</I>.
+
+While for text files it follows directives described in
 <I>An O(ND) Difference Algorithm and Its Variations</I> by <I>Eugene W. Myers</I>.
 
 Memory files used by the library are basically a collection of buffers
@@ -872,7 +878,7 @@ and the
 member as zero. The reason of having this function is to avoid the memory file
 preparation, that might involve copying memory from other sources. Using
 the
-<B>xdl_bdiff</B>(),
+<B>xdl_bdiff_mb</B>(),
 
 the caller can setup the two memory buffer by using, for example,
 <B><A HREF="/cgi-bin/man/man2html?2+mmap">mmap</A></B>(2),
@@ -883,6 +889,87 @@ of the function
 
 are the same as the ones already described in
 <B>xdl_bdiff</B>().
+
+<P>
+<DT><B>int xdl_rabdiff(mmfile_t *</B><I>mmf1</I><B>, mmfile_t *</B><I>mmf2</I><B>, xdemitcb_t *</B><I>ecb</I><B>);</B>
+
+<DD>
+<P>
+Request to create the difference between the two text memory files
+<I>mmf1</I> and <I>mmf2</I>
+
+using the Rabin's polynomial fingerprinting algorithm. This algorithm typically
+performs faster and produces smaller deltas, when compared to the XDelta-like one.
+The
+<I>mmf1</I>
+
+memory files is considered the &quot;old&quot; file while
+<I>mmf2</I>
+
+is considered the &quot;new&quot; file. So the function will create a patch file
+that once applied to
+<I>mmf1</I>
+
+will give
+<I>mmf2</I>
+
+as result. Files
+<I>mmf1</I> and <I>mmf2</I>
+
+must be compact to make it easy and faster to perform the difference operation.
+Functions are available to check for compactness (
+<B>xdl_mmfile_iscompact</B>()
+
+) and to make compact a non-compact file (
+<B>xdl_mmfile_compact</B>()
+
+). The
+<I>ecb</I>
+
+parameter is used to pass the emission callback to the algorithm responsible
+of the output file creation.
+The function returns 0 if succeede or -1 if an error is occurred.
+<P>
+<DT><B>int xdl_rabdiff_mb(mmbuffer_t *</B><I>mmb1</I><B>, mmbuffer_t *</B><I>mmb2</I><B>, xdemitcb_t *</B><I>ecb</I><B>);</B>
+
+<DD>
+<P>
+Same as
+<B>xdl_rabdiff</B>()
+
+but it works on memory buffer directly. The memory buffer structure is defined as :
+<PRE>
+
+        typedef struct s_mmbuffer {
+                char *ptr;
+                long size;
+        } mmbuffer_t;
+
+</PRE>
+
+An empty memory buffer is specified by setting the
+<I>ptr</I>
+
+member as
+<B>NULL</B>
+
+and the
+<I>size</I>
+
+member as zero. The reason of having this function is to avoid the memory file
+preparation, that might involve copying memory from other sources. Using
+the
+<B>xdl_rabdiff_mb</B>(),
+
+the caller can setup the two memory buffer by using, for example,
+<B><A HREF="/cgi-bin/man/man2html?2+mmap">mmap</A></B>(2),
+
+and hence avoiding unnecessary memory copies. The other parameters and the return value
+of the function
+<B>xdl_rabdiff_mb</B>()
+
+are the same as the ones already described in
+<B>xdl_rabdiff</B>().
 
 <P>
 <DT><B>long xdl_bdiff_tgsize(mmfile_t *</B><I>mmfp</I><B>);</B>
@@ -931,10 +1018,21 @@ Two papers drove the content of this library and these are :
 <DT>o<DD>
 <I>File System Support for Delta Compression</I> by <I>Joshua P. MacDonald</I>
 
+<B><A HREF="http://www.xmailserver.org/xdfs.pdf">http://www.xmailserver.org/xdfs.pdf</A></B>
+
 <BR>
 
 <DT>o<DD>
-<I>An O(ND) Difference Algorithm and Its Variations</I> by <I>Eugene W. Myers</I>.
+<I>Fingerprinting by Random Polynomials</I> by <I>Michael O. Rabin</I>
+
+<B><A HREF="http://www.xmailserver.org/rabin.pdf">http://www.xmailserver.org/rabin.pdf</A></B>
+
+<BR>
+
+<DT>o<DD>
+<I>An O(ND) Difference Algorithm and Its Variations</I> by <I>Eugene W. Myers</I>
+
+<B><A HREF="http://www.xmailserver.org/diff2.pdf">http://www.xmailserver.org/diff2.pdf</A></B>
 
 </DL>
 <P>
@@ -1006,6 +1104,6 @@ There are no known bugs.  Bug reports and comments to Davide Libenzi
 This document was created by
 <A HREF="/cgi-bin/man/man2html">man2html</A>,
 using the manual pages.<BR>
-Time: 22:12:36 GMT, April 13, 2006
+Time: 21:59:18 GMT, April 24, 2006
 </BODY>
 </HTML>

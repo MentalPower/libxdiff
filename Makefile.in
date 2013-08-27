@@ -168,7 +168,7 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-SUBDIRS = . xdiff test man
+SUBDIRS = . xdiff test tools man
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 

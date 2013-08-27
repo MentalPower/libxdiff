@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(libxdiff, 0.20)
-AM_INIT_AUTOMAKE(libxdiff, 0.20)
+AC_INIT(libxdiff, 0.21)
+AM_INIT_AUTOMAKE(libxdiff, 0.21)
 AM_CONFIG_HEADER(config.h)
 
 dnl Checks for programs.
@@ -28,5 +28,5 @@ dnl Checks for library functions.
 AC_CHECK_FUNCS(memset memcmp memchr memcpy strlen malloc free realloc)
 
 
-AC_OUTPUT(Makefile xdiff/Makefile test/Makefile man/Makefile)
+AC_OUTPUT(Makefile xdiff/Makefile test/Makefile tools/Makefile man/Makefile)
 

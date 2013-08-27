@@ -16,9 +16,12 @@ functionalities to create file differences/patches to both binary and
 text files. The library uses memory files as file abstraction to
 achieve
 both performance and portability. For binary files, <b>LibXDiff</b>
-implements (with some modification) the algorithm described in <i>File
+implements both (with some modification) the algorithm described in <i>File
 System Support for Delta Compression</i> by <i>Joshua P. MacDonald</i>,
-while for text files it follows directives described in <i>An O(ND)
+and the algorithm described in <span style="font-style: italic;">Fingerprinting
+By Random Polynomials</span> by <span style="font-style: italic;">Michael
+O. Rabin</span>. While for text files it follows directives described
+in <i>An O(ND)
 Difference Algorithm and Its Variations</i> by <i>Eugene W. Myers</i>.
 Memory files used by the library are basically a collection of buffers
 that store the file content. There are two different requirements for
@@ -69,8 +72,8 @@ together with the complete sources. Please read carefully the <a
 using
 the software. The latest library package is available here :</p>
 <p align="left"><a
- href="http://www.xmailserver.org/libxdiff-0.20.tar.gz">Version
-0.20</a></p>
+ href="http://www.xmailserver.org/libxdiff-0.21.tar.gz">Version
+0.21</a></p>
 <p align="left"><br>
 </p>
 <p style="text-align: center;"><b><font size="+1">Links And Docs<br>
@@ -83,6 +86,9 @@ GNU DiffUtil</a><br>
 Difference Algorithm and Its Variations</span> by <i>Eugene W. Myers</i></a><br>
 <a href="xdfs.pdf"><i>File System Support for Delta Compression</i> by <i>Joshua
 P. MacDonald</i></a><br>
+<a href="rabin.pdf"><i>Fingerprinting By Random Polynomials</i> by <i>Michael O. Rabin</i></a><br>
+<a href="rabin_impl.pdf"><i>Fingerprinting Using Polynomial</i> by <i>Calvin Chan</i> and <i>Hahua Lu</i></a><br>
+<a href="rabin_apps.pdf"><i>Some Applications of Rabin's Fingerprinting Method</i> by <i>Andrei Z. Broder</i></a><br>
 <br>
 <br>
 <br>
