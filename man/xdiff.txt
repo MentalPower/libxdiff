@@ -6,10 +6,11 @@ NAME
        xdl_set_allocator, xdl_malloc, xdl_free, xdl_realloc, xdl_init_mmfile,
        xdl_free_mmfile, xdl_mmfile_iscompact, xdl_seek_mmfile,
        xdl_read_mmfile, xdl_write_mmfile, xdl_writem_mmfile,
-       xdl_mmfile_writeallocate, xdl_mmfile_first, xdl_mmfile_next,
-       xdl_mmfile_size, xdl_mmfile_cmp, xdl_mmfile_compact, xdl_diff,
-       xdl_patch, xdl_merge3, xdl_bdiff, xdl_bdiff_tgsize, xdl_bpatch - File
-       Differential Library support functions
+       xdl_mmfile_writeallocate, xdl_mmfile_ptradd, xdl_mmfile_first,
+       xdl_mmfile_next, xdl_mmfile_size, xdl_mmfile_cmp, xdl_mmfile_compact,
+       xdl_diff, xdl_patch, xdl_merge3, xdl_bdiff_mb, xdl_bdiff,
+       xdl_bdiff_tgsize, xdl_bpatch - File Differential Library support func-
+       tions
 
 
 SYNOPSIS
@@ -27,6 +28,7 @@ SYNOPSIS
        long xdl_write_mmfile(mmfile_t *mmf, void const *data, long size);
        long xdl_writem_mmfile(mmfile_t *mmf, mmbuffer_t *mb, int nbuf);
        void *xdl_mmfile_writeallocate(mmfile_t *mmf, long size);
+       long xdl_mmfile_ptradd(mmfile_t *mmf, char *ptr, long size, unsigned long flags);
        void *xdl_mmfile_first(mmfile_t *mmf, long *size);
        void *xdl_mmfile_next(mmfile_t *mmf, long *size);
        long xdl_mmfile_size(mmfile_t *mmf);
@@ -35,6 +37,7 @@ SYNOPSIS
        int xdl_diff(mmfile_t *mmf1, mmfile_t *mmf2, xpparam_t const *xpp, xdemitconf_t const *xecfg, xdemitcb_t *ecb);
        int xdl_patch(mmfile_t *mmf, mmfile_t *mmfp, int mode, xdemitcb_t *ecb, xdemitcb_t *rjecb);
        int xdl_merge3(mmfile_t *mmfo, mmfile_t *mmf1, mmfile_t *mmf2, xdemitcb_t *ecb, xdemitcb_t *rjecb);
+       int xdl_bdiff_mb(mmbuffer_t *mmb1, mmbuffer_t *mmb2, bdiffparam_t const *bdp, xdemitcb_t *ecb);
        int xdl_bdiff(mmfile_t *mmf1, mmfile_t *mmf2, bdiffparam_t const *bdp, xdemitcb_t *ecb);
        long xdl_bdiff_tgsize(mmfile_t *mmfp);
        int xdl_bpatch(mmfile_t *mmf, mmfile_t *mmfp, xdemitcb_t *ecb);
@@ -199,8 +202,8 @@ DESCRIPTION
 
               The ptr field is a pointer to the user data, whose size is spec-
               ified inside the size structure field. The function returns the
-              total number of bytes written or a lower number if an error
-              happened.
+              total number of bytes written or a lower number if an error hap-
+              pened.
 
 
        void *xdl_mmfile_writeallocate(mmfile_t *mmf, long size);
@@ -212,6 +215,25 @@ DESCRIPTION
               the returned pointer.  The files size will grow of size bytes as
               a consequence of this operation. The function will return NULL
               if an error happened.
+
+
+       long xdl_mmfile_ptradd(mmfile_t *mmf, char *ptr, long size, unsigned
+       long flags);
+
+              The function adds a user specified block to the end of the mem-
+              ory file mmf.  The block first byte is pointed to by ptr and its
+              length is size bytes. The flags parameter can be used to specify
+              attributes of the user memory block. Currently supported
+              attributes are:
+
+              XDL_MMB_READONLY Specify that the added memory block must be
+              treated as read-only, and every attempt to write on it should
+              result in a failure of the memory file writing functions.
+
+              The purpose of this function is basically to avoid copying mem-
+              ory around, by helping the library to not drain the CPU cache.
+              The function returns size in case of success, or -1 in case of
+              error.
 
 
        void *xdl_mmfile_first(mmfile_t *mmf, long *size);
@@ -425,6 +447,31 @@ DESCRIPTION
               occurred.
 
 
+       int xdl_bdiff_mb(mmbuffer_t *mmb1, mmbuffer_t *mmb2, bdiffparam_t const
+       *bdp, xdemitcb_t *ecb);
+
+              Same as xdl_bdiff() but it works on memory buffer directly. The
+              xdl_bdiff() is implemented internally with a xdl_bdiff_mb()
+              after having setup the two memory buffers from the passed memory
+              files (that must be compact, as described above). The memory
+              buffer structure is defined as :
+
+                   typedef struct s_mmbuffer {
+                        char *ptr;
+                        long size;
+                   } mmbuffer_t;
+
+              An empty memory buffer is specified by setting the ptr member as
+              NULL and the size member as zero. The reason of having this
+              function is to avoid the memory file preparation, that might
+              involve copying memory from other sources. Using the
+              xdl_bdiff(), the caller can setup the two memory buffer by
+              using, for example, mmap(2), and hence avoiding unnecessary mem-
+              ory copies. The other parameters and the return value of the
+              function xdl_bdiff_mb() are the same as the ones already
+              described in xdl_bdiff().
+
+
        long xdl_bdiff_tgsize(mmfile_t *mmfp);
 
               Given a binary memory file patch, it returns the size that the
@@ -491,4 +538,4 @@ BUGS
 
 
 
-GNU                                   0.7                          LibXDiff(3)
+GNU                                   0.8                          LibXDiff(3)

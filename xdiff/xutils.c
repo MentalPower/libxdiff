@@ -105,7 +105,7 @@ long xdl_read_mmfile(mmfile_t *mmf, void *data, long size) {
 			mmf->rpos = 0;
 		}
 		csize = XDL_MIN(size - rsize, rcur->size - mmf->rpos);
-		memcpy(ptr, (char *) rcur + sizeof(mmblock_t) + mmf->rpos, csize);
+		memcpy(ptr, rcur->ptr + mmf->rpos, csize);
 		rsize += csize;
 		ptr += csize;
 		mmf->rpos += csize;
@@ -120,13 +120,18 @@ long xdl_write_mmfile(mmfile_t *mmf, void const *data, long size) {
 	mmblock_t *wcur;
 
 	for (wsize = 0; wsize < size;) {
-		if (!(wcur = mmf->wcur) || wcur->size == wcur->bsize ||
+		wcur = mmf->wcur;
+		if (wcur && (wcur->flags & XDL_MMB_READONLY))
+			return wsize;
+		if (!wcur || wcur->size == wcur->bsize ||
 		    (mmf->flags & XDL_MMF_ATOMIC && wcur->size + size > wcur->bsize)) {
 			bsize = XDL_MAX(mmf->bsize, size);
 			if (!(wcur = (mmblock_t *) xdl_malloc(sizeof(mmblock_t) + bsize))) {
 
 				return wsize;
 			}
+			wcur->flags = 0;
+			wcur->ptr = (char *) wcur + sizeof(mmblock_t);
 			wcur->size = 0;
 			wcur->bsize = bsize;
 			wcur->next = NULL;
@@ -138,8 +143,7 @@ long xdl_write_mmfile(mmfile_t *mmf, void const *data, long size) {
 			mmf->wcur = wcur;
 		}
 		csize = XDL_MIN(size - wsize, wcur->bsize - wcur->size);
-		memcpy((char *) wcur + sizeof(mmblock_t) + wcur->size,
-		       (char const *) data + wsize, csize);
+		memcpy(wcur->ptr + wcur->size, (char const *) data + wsize, csize);
 		wsize += csize;
 		wcur->size += csize;
 		mmf->fsize += csize;
@@ -178,6 +182,8 @@ void *xdl_mmfile_writeallocate(mmfile_t *mmf, long size) {
 
 			return NULL;
 		}
+		wcur->flags = 0;
+		wcur->ptr = (char *) wcur + sizeof(mmblock_t);
 		wcur->size = 0;
 		wcur->bsize = bsize;
 		wcur->next = NULL;
@@ -189,11 +195,36 @@ void *xdl_mmfile_writeallocate(mmfile_t *mmf, long size) {
 		mmf->wcur = wcur;
 	}
 
-	blk = (char *) wcur + sizeof(mmblock_t) + wcur->size;
+	blk = wcur->ptr + wcur->size;
 	wcur->size += size;
 	mmf->fsize += size;
 
 	return blk;
+}
+
+
+long xdl_mmfile_ptradd(mmfile_t *mmf, char *ptr, long size, unsigned long flags) {
+	mmblock_t *wcur;
+	char *blk;
+
+	if (!(wcur = (mmblock_t *) xdl_malloc(sizeof(mmblock_t)))) {
+
+		return -1;
+	}
+	wcur->flags = flags;
+	wcur->ptr = ptr;
+	wcur->size = wcur->bsize = size;
+	wcur->next = NULL;
+	if (!mmf->head)
+		mmf->head = wcur;
+	if (mmf->tail)
+		mmf->tail->next = wcur;
+	mmf->tail = wcur;
+	mmf->wcur = wcur;
+
+	mmf->fsize += size;
+
+	return size;
 }
 
 
@@ -204,7 +235,7 @@ void *xdl_mmfile_first(mmfile_t *mmf, long *size) {
 
 	*size = mmf->rcur->size;
 
-	return (char *) mmf->rcur + sizeof(mmblock_t);
+	return mmf->rcur->ptr;
 }
 
 
@@ -215,7 +246,7 @@ void *xdl_mmfile_next(mmfile_t *mmf, long *size) {
 
 	*size = mmf->rcur->size;
 
-	return (char *) mmf->rcur + sizeof(mmblock_t);
+	return mmf->rcur->ptr;
 }
 
 

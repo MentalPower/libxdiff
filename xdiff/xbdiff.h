@@ -28,6 +28,7 @@
 
 
 
+unsigned long xdl_mmb_adler32(mmbuffer_t *mmb);
 unsigned long xdl_mmf_adler32(mmfile_t *mmf);
 
 

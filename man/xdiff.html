@@ -1,7 +1,7 @@
 <HTML><HEAD><TITLE>Manpage of LibXDiff</TITLE>
 </HEAD><BODY text="#0000FF" bgcolor="#FFFFFF">
 <H1>LibXDiff</H1>
-Section: File Differential Library (3)<BR>Updated: 0.7<BR><A HREF="#index">Index</A>
+Section: File Differential Library (3)<BR>Updated: 0.8<BR><A HREF="#index">Index</A>
 <A HREF="http://localhost/cgi-bin/man/man2html">Return to Main Contents</A><HR>
 
 <A NAME="lbAB">&nbsp;</A>
@@ -10,8 +10,8 @@ Section: File Differential Library (3)<BR>Updated: 0.7<BR><A HREF="#index">Index
 <P>
 xdl_set_allocator, xdl_malloc, xdl_free, xdl_realloc, xdl_init_mmfile, xdl_free_mmfile,
 xdl_mmfile_iscompact, xdl_seek_mmfile, xdl_read_mmfile, xdl_write_mmfile, xdl_writem_mmfile,
-xdl_mmfile_writeallocate, xdl_mmfile_first, xdl_mmfile_next, xdl_mmfile_size, xdl_mmfile_cmp,
-xdl_mmfile_compact, xdl_diff, xdl_patch, xdl_merge3, xdl_bdiff, xdl_bdiff_tgsize, xdl_bpatch - File Differential Library support functions
+xdl_mmfile_writeallocate, xdl_mmfile_ptradd, xdl_mmfile_first, xdl_mmfile_next, xdl_mmfile_size, xdl_mmfile_cmp,
+xdl_mmfile_compact, xdl_diff, xdl_patch, xdl_merge3, xdl_bdiff_mb, xdl_bdiff, xdl_bdiff_tgsize, xdl_bpatch - File Differential Library support functions
 <P>
 <A NAME="lbAC">&nbsp;</A>
 <H2>SYNOPSIS</H2>
@@ -31,6 +31,7 @@ xdl_mmfile_compact, xdl_diff, xdl_patch, xdl_merge3, xdl_bdiff, xdl_bdiff_tgsize
 <B>long xdl_write_mmfile(mmfile_t *</B><I>mmf</I><B>, void const *</B><I>data</I><B>, long </B><I>size</I><B>);</B>
 <B>long xdl_writem_mmfile(mmfile_t *</B><I>mmf</I><B>, mmbuffer_t *</B><I>mb</I><B>, int </B><I>nbuf</I><B>);</B>
 <B>void *xdl_mmfile_writeallocate(mmfile_t *</B><I>mmf</I><B>, long </B><I>size</I><B>);</B>
+<B>long xdl_mmfile_ptradd(mmfile_t *</B><I>mmf</I><B>, char *</B><I>ptr</I><B>, long </B><I>size</I><B>, unsigned long </B><I>flags</I><B>);</B>
 <B>void *xdl_mmfile_first(mmfile_t *</B><I>mmf</I><B>, long *</B><I>size</I><B>);</B>
 <B>void *xdl_mmfile_next(mmfile_t *</B><I>mmf</I><B>, long *</B><I>size</I><B>);</B>
 <B>long xdl_mmfile_size(mmfile_t *</B><I>mmf</I><B>);</B>
@@ -39,6 +40,7 @@ xdl_mmfile_compact, xdl_diff, xdl_patch, xdl_merge3, xdl_bdiff, xdl_bdiff_tgsize
 <B>int xdl_diff(mmfile_t *</B><I>mmf1</I><B>, mmfile_t *</B><I>mmf2</I><B>, xpparam_t const *</B><I>xpp</I><B>, xdemitconf_t const *</B><I>xecfg</I><B>, xdemitcb_t *</B><I>ecb</I><B>);</B>
 <B>int xdl_patch(mmfile_t *</B><I>mmf</I><B>, mmfile_t *</B><I>mmfp</I><B>, int </B><I>mode</I><B>, xdemitcb_t *</B><I>ecb</I><B>, xdemitcb_t *</B><I>rjecb</I><B>);</B>
 <B>int xdl_merge3(mmfile_t *</B><I>mmfo</I><B>, mmfile_t *</B><I>mmf1</I><B>, mmfile_t *</B><I>mmf2</I><B>, xdemitcb_t *</B><I>ecb</I><B>, xdemitcb_t *</B><I>rjecb</I><B>);</B>
+<B>int xdl_bdiff_mb(mmbuffer_t *</B><I>mmb1</I><B>, mmbuffer_t *</B><I>mmb2</I><B>, bdiffparam_t const *</B><I>bdp</I><B>, xdemitcb_t *</B><I>ecb</I><B>);</B>
 <B>int xdl_bdiff(mmfile_t *</B><I>mmf1</I><B>, mmfile_t *</B><I>mmf2</I><B>, bdiffparam_t const *</B><I>bdp</I><B>, xdemitcb_t *</B><I>ecb</I><B>);</B>
 <B>long xdl_bdiff_tgsize(mmfile_t *</B><I>mmfp</I><B>);</B>
 <B>int xdl_bpatch(mmfile_t *</B><I>mmf</I><B>, mmfile_t *</B><I>mmfp</I><B>, xdemitcb_t *</B><I>ecb</I><B>);</B>
@@ -397,6 +399,39 @@ bytes as a consequence of this operation. The function will return
 <B>NULL</B>
 
 if an error happened.
+<P>
+<DT><B>long xdl_mmfile_ptradd(mmfile_t *</B><I>mmf</I><B>, char *</B><I>ptr</I><B>, long </B><I>size</I><B>, unsigned long </B><I>flags</I><B>);</B>
+
+<DD>
+<P>
+The function adds a user specified block to the end of the memory file
+<I>mmf</I>.
+
+The block first byte is pointed to by
+<I>ptr</I>
+
+and its length is
+<I>size</I>
+
+bytes. The
+<I>flags</I>
+
+parameter can be used to specify attributes of the user memory block. Currently
+supported attributes are:
+<BR>
+
+<DT><DD>
+<B>XDL_MMB_READONLY</B>
+
+Specify that the added memory block must be treated as read-only, and
+every attempt to write on it should result in a failure of the memory file
+writing functions.
+<P>
+The purpose of this function is basically to avoid copying memory around,
+by helping the library to not drain the CPU cache. The function returns
+<I>size</I>
+
+in case of success, or -1 in case of error.
 <P>
 <DT><B>void *xdl_mmfile_first(mmfile_t *</B><I>mmf</I><B>, long *</B><I>size</I><B>);</B>
 
@@ -773,6 +808,55 @@ parameter is used to pass the emission callback to the algorithm responsible
 of the output file creation.
 The function returns 0 if succeede or -1 if an error is occurred.
 <P>
+<DT><B>int xdl_bdiff_mb(mmbuffer_t *</B><I>mmb1</I><B>, mmbuffer_t *</B><I>mmb2</I><B>, bdiffparam_t const *</B><I>bdp</I><B>, xdemitcb_t *</B><I>ecb</I><B>);</B>
+
+<DD>
+<P>
+Same as
+<B>xdl_bdiff</B>()
+
+but it works on memory buffer directly. The
+<B>xdl_bdiff</B>()
+
+is implemented internally with a
+<B>xdl_bdiff_mb</B>()
+
+after having setup the two memory buffers from the passed memory files (that must be compact,
+as described above). The memory buffer structure is defined as :
+<PRE>
+
+        typedef struct s_mmbuffer {
+                char *ptr;
+                long size;
+        } mmbuffer_t;
+
+</PRE>
+
+An empty memory buffer is specified by setting the
+<I>ptr</I>
+
+member as
+<B>NULL</B>
+
+and the
+<I>size</I>
+
+member as zero. The reason of having this function is to avoid the memory file
+preparation, that might involve copying memory from other sources. Using
+the
+<B>xdl_bdiff</B>(),
+
+the caller can setup the two memory buffer by using, for example,
+<B><A HREF="http://localhost/cgi-bin/man/man2html?2+mmap">mmap</A></B>(2),
+
+and hence avoiding unnecessary memory copies. The other parameters and the return value
+of the function
+<B>xdl_bdiff_mb</B>()
+
+are the same as the ones already described in
+<B>xdl_bdiff</B>().
+
+<P>
 <DT><B>long xdl_bdiff_tgsize(mmfile_t *</B><I>mmfp</I><B>);</B>
 
 <DD>
@@ -894,6 +978,6 @@ There are no known bugs.  Bug reports and comments to Davide Libenzi
 This document was created by
 <A HREF="http://localhost/cgi-bin/man/man2html">man2html</A>,
 using the manual pages.<BR>
-Time: 22:33:48 GMT, February 11, 2004
+Time: 17:08:02 GMT, May 03, 2004
 </BODY>
 </HTML>

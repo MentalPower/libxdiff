@@ -47,21 +47,20 @@ typedef struct s_bdfile {
 
 
 
-static int xdl_prepare_bdfile(mmfile_t *mmf, long fpbsize, bdfile_t *bdf);
+static int xdl_prepare_bdfile(mmbuffer_t *mmb, long fpbsize, bdfile_t *bdf);
 static void xdl_free_bdfile(bdfile_t *bdf);
 
 
 
 
-static int xdl_prepare_bdfile(mmfile_t *mmf, long fpbsize, bdfile_t *bdf) {
+static int xdl_prepare_bdfile(mmbuffer_t *mmb, long fpbsize, bdfile_t *bdf) {
 	unsigned int fphbits;
-	long i, fsize, size, hsize;
-	char const *blk, *data, *top;
+	long i, size, hsize;
+	char const *base, *data, *top;
 	bdrecord_t *brec;
 	bdrecord_t **fphash;
 
-	fsize = xdl_mmfile_size(mmf);
-	fphbits = xdl_hashbits((unsigned int) (fsize / fpbsize) + 1);
+	fphbits = xdl_hashbits((unsigned int) (mmb->size / fpbsize) + 1);
 	hsize = 1 << fphbits;
 	if (!(fphash = (bdrecord_t **) xdl_malloc(hsize * sizeof(bdrecord_t *)))) {
 
@@ -76,16 +75,16 @@ static int xdl_prepare_bdfile(mmfile_t *mmf, long fpbsize, bdfile_t *bdf) {
 		return -1;
 	}
 
-	if (!(blk = (char const *) xdl_mmfile_first(mmf, &size))) {
+	if (!(size = mmb->size)) {
 		bdf->data = bdf->top = NULL;
 	} else {
-		bdf->data = data = blk;
-		bdf->top = top = blk + size;
+		bdf->data = data = base = mmb->ptr;
+		bdf->top = top = mmb->ptr + mmb->size;
 
 		if ((data += (size / fpbsize) * fpbsize) == top)
 			data -= fpbsize;
 
-		for (; data >= blk; data -= fpbsize) {
+		for (; data >= base; data -= fpbsize) {
 			if (!(brec = (bdrecord_t *) xdl_cha_alloc(&bdf->cha))) {
 
 				xdl_cha_free(&bdf->cha);
@@ -117,6 +116,12 @@ static void xdl_free_bdfile(bdfile_t *bdf) {
 }
 
 
+unsigned long xdl_mmb_adler32(mmbuffer_t *mmb) {
+
+	return mmb->size ? xdl_adler32(0, (unsigned char const *) mmb->ptr, mmb->size): 0;
+}
+
+
 unsigned long xdl_mmf_adler32(mmfile_t *mmf) {
 	unsigned long fp = 0;
 	long size;
@@ -131,7 +136,7 @@ unsigned long xdl_mmf_adler32(mmfile_t *mmf) {
 }
 
 
-int xdl_bdiff(mmfile_t *mmf1, mmfile_t *mmf2, bdiffparam_t const *bdp, xdemitcb_t *ecb) {
+int xdl_bdiff_mb(mmbuffer_t *mmb1, mmbuffer_t *mmb2, bdiffparam_t const *bdp, xdemitcb_t *ecb) {
 	long i, rsize, size, bsize, ibufcnt, csize, off, msize, moff;
 	unsigned long fp;
 	char const *blk, *data, *top, *ptr1, *ptr2;
@@ -140,13 +145,9 @@ int xdl_bdiff(mmfile_t *mmf1, mmfile_t *mmf2, bdiffparam_t const *bdp, xdemitcb_
 	mmbuffer_t mb;
 	unsigned char insbuf[XDL_INSBATCH_MAX + 2], cpybuf[32];
 
-	if (!xdl_mmfile_iscompact(mmf1) || !xdl_mmfile_iscompact(mmf2)) {
-
-		return -1;
-	}
 	if ((bsize = bdp->bsize) < XDL_MIN_BLKSIZE)
 		bsize = XDL_MIN_BLKSIZE;
-	if (xdl_prepare_bdfile(mmf1, bsize, &bdf) < 0) {
+	if (xdl_prepare_bdfile(mmb1, bsize, &bdf) < 0) {
 
 		return -1;
 	}
@@ -156,8 +157,8 @@ int xdl_bdiff(mmfile_t *mmf1, mmfile_t *mmf2, bdiffparam_t const *bdp, xdemitcb_
 	 * to verify that that file being patched matches in size and fingerprint
 	 * the one that generated the patch.
 	 */
-	fp = xdl_mmf_adler32(mmf1);
-	size = xdl_mmfile_size(mmf1);
+	fp = xdl_mmb_adler32(mmb1);
+	size = mmb1->size;
 	XDL_LE32_PUT(cpybuf, fp);
 	XDL_LE32_PUT(cpybuf + 4, size);
 
@@ -170,7 +171,8 @@ int xdl_bdiff(mmfile_t *mmf1, mmfile_t *mmf2, bdiffparam_t const *bdp, xdemitcb_
 		return -1;
 	}
 
-	if ((blk = (char const *) xdl_mmfile_first(mmf2, &size)) != NULL) {
+	if ((blk = (char const *) mmb2->ptr) != NULL) {
+		size = mmb2->size;
 		for (ibufcnt = 0, data = blk, top = data + size; data < top;) {
 			rsize = XDL_MIN(bsize, (long) (top - data));
 			fp = xdl_adler32(0, (unsigned char const *) data, rsize);
@@ -255,6 +257,23 @@ int xdl_bdiff(mmfile_t *mmf1, mmfile_t *mmf2, bdiffparam_t const *bdp, xdemitcb_
 	xdl_free_bdfile(&bdf);
 
 	return 0;
+}
+
+
+int xdl_bdiff(mmfile_t *mmf1, mmfile_t *mmf2, bdiffparam_t const *bdp, xdemitcb_t *ecb) {
+	mmbuffer_t mmb1, mmb2;
+
+	if (!xdl_mmfile_iscompact(mmf1) || !xdl_mmfile_iscompact(mmf2)) {
+
+		return -1;
+	}
+
+	if ((mmb1.ptr = (char *) xdl_mmfile_first(mmf1, &mmb1.size)) == NULL)
+		mmb1.size = 0;
+	if ((mmb2.ptr = (char *) xdl_mmfile_first(mmf2, &mmb2.size)) == NULL)
+		mmb2.size = 0;
+
+	return xdl_bdiff_mb(&mmb1, &mmb2, bdp, ecb);
 }
 
 

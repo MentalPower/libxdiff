@@ -19,13 +19,13 @@
 .\"  Davide Libenzi <davidel@xmailserver.org>
 .\"
 .na
-.TH LibXDiff 3 "0.7" "GNU" "File Differential Library"
+.TH LibXDiff 3 "0.8" "GNU" "File Differential Library"
 .SH NAME
 
 xdl_set_allocator, xdl_malloc, xdl_free, xdl_realloc, xdl_init_mmfile, xdl_free_mmfile,
 xdl_mmfile_iscompact, xdl_seek_mmfile, xdl_read_mmfile, xdl_write_mmfile, xdl_writem_mmfile,
-xdl_mmfile_writeallocate, xdl_mmfile_first, xdl_mmfile_next, xdl_mmfile_size, xdl_mmfile_cmp,
-xdl_mmfile_compact, xdl_diff, xdl_patch, xdl_merge3, xdl_bdiff, xdl_bdiff_tgsize, xdl_bpatch \- File Differential Library support functions
+xdl_mmfile_writeallocate, xdl_mmfile_ptradd, xdl_mmfile_first, xdl_mmfile_next, xdl_mmfile_size, xdl_mmfile_cmp,
+xdl_mmfile_compact, xdl_diff, xdl_patch, xdl_merge3, xdl_bdiff_mb, xdl_bdiff, xdl_bdiff_tgsize, xdl_bpatch \- File Differential Library support functions
 
 .SH SYNOPSIS
 .nf
@@ -55,6 +55,8 @@ xdl_mmfile_compact, xdl_diff, xdl_patch, xdl_merge3, xdl_bdiff, xdl_bdiff_tgsize
 .nl
 .BI "void *xdl_mmfile_writeallocate(mmfile_t *" mmf ", long " size ");"
 .nl
+.BI "long xdl_mmfile_ptradd(mmfile_t *" mmf ", char *" ptr ", long " size ", unsigned long " flags ");"
+.nl
 .BI "void *xdl_mmfile_first(mmfile_t *" mmf ", long *" size ");"
 .nl
 .BI "void *xdl_mmfile_next(mmfile_t *" mmf ", long *" size ");"
@@ -70,6 +72,8 @@ xdl_mmfile_compact, xdl_diff, xdl_patch, xdl_merge3, xdl_bdiff, xdl_bdiff_tgsize
 .BI "int xdl_patch(mmfile_t *" mmf ", mmfile_t *" mmfp ", int " mode ", xdemitcb_t *" ecb ", xdemitcb_t *" rjecb ");"
 .nl
 .BI "int xdl_merge3(mmfile_t *" mmfo ", mmfile_t *" mmf1 ", mmfile_t *" mmf2 ", xdemitcb_t *" ecb ", xdemitcb_t *" rjecb ");"
+.nl
+.BI "int xdl_bdiff_mb(mmbuffer_t *" mmb1 ", mmbuffer_t *" mmb2 ", bdiffparam_t const *" bdp ", xdemitcb_t *" ecb ");"
 .nl
 .BI "int xdl_bdiff(mmfile_t *" mmf1 ", mmfile_t *" mmf2 ", bdiffparam_t const *" bdp ", xdemitcb_t *" ecb ");"
 .nl
@@ -341,6 +345,31 @@ The files size will grow of
 bytes as a consequence of this operation. The function will return
 .B NULL
 if an error happened.
+
+.TP
+.BI "long xdl_mmfile_ptradd(mmfile_t *" mmf ", char *" ptr ", long " size ", unsigned long " flags ");"
+
+The function adds a user specified block to the end of the memory file
+.IR mmf .
+The block first byte is pointed to by
+.I ptr
+and its length is
+.I size
+bytes. The
+.I flags
+parameter can be used to specify attributes of the user memory block. Currently
+supported attributes are:
+.br
+.IP
+.B XDL_MMB_READONLY
+Specify that the added memory block must be treated as read-only, and
+every attempt to write on it should result in a failure of the memory file
+writing functions.
+
+The purpose of this function is basically to avoid copying memory around,
+by helping the library to not drain the CPU cache. The function returns
+.I size
+in case of success, or -1 in case of error.
 
 .TP
 .BI "void *xdl_mmfile_first(mmfile_t *" mmf ", long *" size ");"
@@ -636,6 +665,43 @@ The
 parameter is used to pass the emission callback to the algorithm responsible
 of the output file creation.
 The function returns 0 if succeede or -1 if an error is occurred.
+
+.TP
+.BI "int xdl_bdiff_mb(mmbuffer_t *" mmb1 ", mmbuffer_t *" mmb2 ", bdiffparam_t const *" bdp ", xdemitcb_t *" ecb ");"
+
+Same as
+.BR xdl_bdiff ()
+but it works on memory buffer directly. The
+.BR xdl_bdiff ()
+is implemented internally with a
+.BR xdl_bdiff_mb ()
+after having setup the two memory buffers from the passed memory files (that must be compact,
+as described above). The memory buffer structure is defined as :
+.nf
+
+	typedef struct s_mmbuffer {
+		char *ptr;
+		long size;
+	} mmbuffer_t;
+
+.fi
+An empty memory buffer is specified by setting the
+.I ptr
+member as
+.B NULL
+and the
+.I size
+member as zero. The reason of having this function is to avoid the memory file
+preparation, that might involve copying memory from other sources. Using
+the
+.BR xdl_bdiff (),
+the caller can setup the two memory buffer by using, for example,
+.BR mmap (2),
+and hence avoiding unnecessary memory copies. The other parameters and the return value
+of the function
+.BR xdl_bdiff_mb ()
+are the same as the ones already described in
+.BR xdl_bdiff ().
 
 .TP
 .BI "long xdl_bdiff_tgsize(mmfile_t *" mmfp ");"

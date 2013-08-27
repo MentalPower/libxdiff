@@ -33,6 +33,8 @@ extern "C" {
 #define XDL_PATCH_NORMAL '-'
 #define XDL_PATCH_REVERSE '+'
 
+#define XDL_MMB_READONLY (1 << 0)
+
 #define XDL_MMF_ATOMIC (1 << 0)
 
 #define XDL_BDOP_INS 1
@@ -48,7 +50,9 @@ typedef struct s_memallocator {
 
 typedef struct s_mmblock {
 	struct s_mmblock *next;
+	unsigned long flags;
 	long size, bsize;
+	char *ptr;
 } mmblock_t;
 
 typedef struct s_mmfile {
@@ -94,6 +98,7 @@ long xdl_read_mmfile(mmfile_t *mmf, void *data, long size);
 long xdl_write_mmfile(mmfile_t *mmf, void const *data, long size);
 long xdl_writem_mmfile(mmfile_t *mmf, mmbuffer_t *mb, int nbuf);
 void *xdl_mmfile_writeallocate(mmfile_t *mmf, long size);
+long xdl_mmfile_ptradd(mmfile_t *mmf, char *ptr, long size, unsigned long flags);
 void *xdl_mmfile_first(mmfile_t *mmf, long *size);
 void *xdl_mmfile_next(mmfile_t *mmf, long *size);
 long xdl_mmfile_size(mmfile_t *mmf);
@@ -108,6 +113,7 @@ int xdl_patch(mmfile_t *mf, mmfile_t *mfp, int mode, xdemitcb_t *ecb,
 int xdl_merge3(mmfile_t *mmfo, mmfile_t *mmf1, mmfile_t *mmf2, xdemitcb_t *ecb,
 	       xdemitcb_t *rjecb);
 
+int xdl_bdiff_mb(mmbuffer_t *mmb1, mmbuffer_t *mmb2, bdiffparam_t const *bdp, xdemitcb_t *ecb);
 int xdl_bdiff(mmfile_t *mmf1, mmfile_t *mmf2, bdiffparam_t const *bdp, xdemitcb_t *ecb);
 long xdl_bdiff_tgsize(mmfile_t *mmfp);
 int xdl_bpatch(mmfile_t *mmf, mmfile_t *mmfp, xdemitcb_t *ecb);
