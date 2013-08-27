@@ -227,3 +227,8 @@ operates.
 `configure' also accepts some other, not widely useful, options.  Run
 `configure --help' for more details.
 
+Windows Build
+======================
+    The file `makefile.win32' can be used to build the Windows version
+of the library using `nmake -f makefile.win32'.
+
