@@ -95,7 +95,7 @@ int xdlt_dump_mmfile(char const *fname, mmfile_t *mmf) {
 int xdlt_load_mmfile(char const *fname, mmfile_t *mf, int binmode) {
 	char cc;
 	int fd;
-	long size, bsize;
+	long size;
 	char *blk;
 
 	if (xdl_init_mmfile(mf, XDLT_STD_BLKSIZE, XDL_MMF_ATOMIC) < 0) {
@@ -107,13 +107,9 @@ int xdlt_load_mmfile(char const *fname, mmfile_t *mf, int binmode) {
 		xdl_free_mmfile(mf);
 		return -1;
 	}
-	if ((size = bsize = lseek(fd, 0, SEEK_END)) > 0 && !binmode) {
-		if (lseek(fd, -1, SEEK_END) != (off_t) -1 &&
-		    read(fd, &cc, 1) && cc != '\n')
-			bsize++;
-	}
+	size = lseek(fd, 0, SEEK_END);
 	lseek(fd, 0, SEEK_SET);
-	if (!(blk = (char *) xdl_mmfile_writeallocate(mf, bsize))) {
+	if (!(blk = (char *) xdl_mmfile_writeallocate(mf, size))) {
 		xdl_free_mmfile(mf);
 		close(fd);
 		return -1;
@@ -125,8 +121,6 @@ int xdlt_load_mmfile(char const *fname, mmfile_t *mf, int binmode) {
 		return -1;
 	}
 	close(fd);
-	if (bsize > size)
-		blk[size] = '\n';
 
 	return 0;
 }
@@ -152,10 +146,8 @@ int xdlt_do_diff(mmfile_t *mf1, mmfile_t *mf2, xpparam_t const *xpp,
 
 		return -1;
 	}
-
 	ecb.priv = mfp;
 	ecb.outf = xdlt_mmfile_outf;
-
 	if (xdl_diff(mf1, mf2, xpp, xecfg, &ecb) < 0) {
 
 		xdl_free_mmfile(mfp);
@@ -179,12 +171,10 @@ int xdlt_do_patch(mmfile_t *mfo, mmfile_t *mfp, int mode, mmfile_t *mfr) {
 		xdl_free_mmfile(mfr);
 		return -1;
 	}
-
 	ecb.priv = mfr;
 	ecb.outf = xdlt_mmfile_outf;
 	rjecb.priv = &mmfrj;
 	rjecb.outf = xdlt_mmfile_outf;
-
 	if (xdl_patch(mfo, mfp, mode, &ecb, &rjecb) < 0) {
 
 		xdl_free_mmfile(&mmfrj);
@@ -218,35 +208,29 @@ int xdlt_do_regress(mmfile_t *mf1, mmfile_t *mf2, xpparam_t const *xpp,
 
 		return -1;
 	}
-
 	if (xdlt_do_patch(mf1, &mfp, XDL_PATCH_NORMAL, &mfr) < 0) {
 
 		xdl_free_mmfile(&mfp);
 		return -1;
 	}
-
 	if (xdl_mmfile_cmp(&mfr, mf2)) {
 
 		xdl_free_mmfile(&mfr);
 		xdl_free_mmfile(&mfp);
 		return -1;
 	}
-
 	xdl_free_mmfile(&mfr);
-
 	if (xdlt_do_patch(mf2, &mfp, XDL_PATCH_REVERSE, &mfr) < 0) {
 
 		xdl_free_mmfile(&mfp);
 		return -1;
 	}
-
 	if (xdl_mmfile_cmp(&mfr, mf1)) {
 
 		xdl_free_mmfile(&mfr);
 		xdl_free_mmfile(&mfp);
 		return -1;
 	}
-
 	xdl_free_mmfile(&mfr);
 	xdl_free_mmfile(&mfp);
 
@@ -286,7 +270,6 @@ int xdlt_create_file(mmfile_t *mf, long size) {
 		xdl_free_mmfile(mf);
 		return -1;
 	}
-
 	for (csize = 0; size - csize > XDLT_MAX_LINE_SIZE;) {
 		lnsize = xdlt_gen_line(data, XDLT_MAX_LINE_SIZE);
 		data += lnsize;
@@ -309,7 +292,6 @@ int xdlt_change_file(mmfile_t *mfo, mmfile_t *mfr, double rmod,
 
 		return -1;
 	}
-
 	if ((blk = xdl_mmfile_first(mfo, &bsize)) != NULL) {
 		for (cur = blk, top = blk + bsize, skipln = 0;;) {
 			if (cur >= top) {
@@ -365,14 +347,12 @@ int xdlt_auto_regress(xpparam_t const *xpp, xdemitconf_t const *xecfg, long size
 		xdl_free_mmfile(&mf1);
 		return -1;
 	}
-
 	if (xdlt_do_regress(&mf1, &mf2, xpp, xecfg) < 0) {
 
 		xdl_free_mmfile(&mf2);
 		xdl_free_mmfile(&mf1);
 		return -1;
 	}
-
 	xdl_free_mmfile(&mf2);
 	xdl_free_mmfile(&mf1);
 
@@ -387,10 +367,8 @@ int xdlt_do_bindiff(mmfile_t *mf1, mmfile_t *mf2, bdiffparam_t const *bdp, mmfil
 
 		return -1;
 	}
-
 	ecb.priv = mfp;
 	ecb.outf = xdlt_mmfile_outf;
-
 	if (xdl_bdiff(mf1, mf2, bdp, &ecb) < 0) {
 
 		xdl_free_mmfile(mfp);
@@ -408,10 +386,8 @@ int xdlt_do_binpatch(mmfile_t *mf, mmfile_t *mfp, mmfile_t *mfr) {
 
 		return -1;
 	}
-
 	ecb.priv = mfr;
 	ecb.outf = xdlt_mmfile_outf;
-
 	if (xdl_bpatch(mf, mfp, &ecb) < 0) {
 
 		xdl_free_mmfile(mfr);
@@ -429,20 +405,17 @@ int xdlt_do_binregress(mmfile_t *mf1, mmfile_t *mf2, bdiffparam_t const *bdp) {
 
 		return -1;
 	}
-
 	if (xdlt_do_binpatch(mf1, &mfp, &mfr) < 0) {
 
 		xdl_free_mmfile(&mfp);
 		return -1;
 	}
-
 	if (xdl_mmfile_cmp(&mfr, mf2)) {
 
 		xdl_free_mmfile(&mfr);
 		xdl_free_mmfile(&mfp);
 		return -1;
 	}
-
 	xdl_free_mmfile(&mfr);
 	xdl_free_mmfile(&mfp);
 
@@ -470,14 +443,12 @@ int xdlt_auto_binregress(bdiffparam_t const *bdp, long size,
 		return -1;
 	}
 	xdl_free_mmfile(&mf2);
-
 	if (xdlt_do_binregress(&mf1, &mf2c, bdp) < 0) {
 
 		xdl_free_mmfile(&mf2c);
 		xdl_free_mmfile(&mf1);
 		return -1;
 	}
-
 	xdl_free_mmfile(&mf2c);
 	xdl_free_mmfile(&mf1);
 
@@ -568,10 +539,8 @@ int xdlt_auto_mbinregress(bdiffparam_t const *bdp, long size,
 		xdl_free(mbb);
 		return -1;
 	}
-
 	ecb.priv = mfc;
 	ecb.outf = xdlt_mmfile_outf;
-
 	if ((res = xdl_bpatch_multi(&mbb[0], &mbb[1], n, &ecb)) == 0)
 		res = xdl_mmfile_cmp(mfx, mfc);
 

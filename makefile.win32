@@ -32,18 +32,18 @@ XDIFFTEST=xdifftest.exe
 XDIFF_SRCDIR=.\xdiff
 TEST_SRCDIR=.\test
 INCL_DIRS=/I"$(XDIFF_SRCDIR)" /I"$(TEST_SRCDIR)" /I"."
-CFLAGS=/D "WIN32" /D "HAVE_WINCONFIG_H" $(INCL_DIRS)
+CFLAGS=/D "WIN32" /D "HAVE_WINCONFIG_H" /D "_CRT_SECURE_NO_DEPRECATE" /D "_CRT_NONSTDC_NO_DEPRECATE" $(INCL_DIRS)
 
 
 !IF "$(CFG)" == "release"
 
 OUTDIR=.\release
-CPP_FLAGS=/nologo $(CFLAGS) /Zp1 /MT /W3 /GX /O2 /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /Fo"$(OUTDIR)\\" /FD /c
+CPP_FLAGS=/nologo $(CFLAGS) /Zp1 /MT /W3 /O2 /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /Fo"$(OUTDIR)\\" /FD /c
 
 !ELSEIF  "$(CFG)" == "debug"
 
 OUTDIR=.\debug
-CPP_FLAGS=/nologo $(CFLAGS) /Zp1 /MTd /Yd /Zi /W3 /Gm /GX /ZI /Od /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /Fo"$(OUTDIR)\\" /FD /GZ /c
+CPP_FLAGS=/nologo $(CFLAGS) /Zp1 /MTd /Zi /W3 /Gm /Od /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /Fo"$(OUTDIR)\\" /FD /c
 
 !ENDIF
 

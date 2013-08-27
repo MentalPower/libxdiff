@@ -24,7 +24,7 @@
 #define WINCONFIG_H
 
 #if !defined(PACKAGE_VERSION)
-#define PACKAGE_VERSION "0.17"
+#define PACKAGE_VERSION "0.18"
 #endif /* #if !defined(PACKAGE_VERSION) */
 
 #define HAVE_STDIO_H 1

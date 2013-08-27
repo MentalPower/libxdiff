@@ -64,7 +64,7 @@ typedef struct s_patch {
 
 
 static int xdl_load_hunk_info(char const *line, long size, hunkinfo_t *hki);
-static int xdl_init_recfile(mmfile_t *mf, recfile_t *rf);
+static int xdl_init_recfile(mmfile_t *mf, int ispatch, recfile_t *rf);
 static void xdl_free_recfile(recfile_t *rf);
 static char const *xdl_recfile_get(recfile_t *rf, long irec, long *size);
 static int xdl_init_patch(mmfile_t *mf, long flags, patch_t *pch);
@@ -171,7 +171,7 @@ static int xdl_load_hunk_info(char const *line, long size, hunkinfo_t *hki) {
 }
 
 
-static int xdl_init_recfile(mmfile_t *mf, recfile_t *rf) {
+static int xdl_init_recfile(mmfile_t *mf, int ispatch, recfile_t *rf) {
 	long narec, nrec, bsize;
 	recinfo_t *recs, *rrecs;
 	char const *blk, *cur, *top, *eol;
@@ -191,7 +191,8 @@ static int xdl_init_recfile(mmfile_t *mf, recfile_t *rf) {
 			}
 			if (nrec >= narec) {
 				narec *= 2;
-				if (!(rrecs = (recinfo_t *) xdl_realloc(recs, narec * sizeof(recinfo_t)))) {
+				if (!(rrecs = (recinfo_t *)
+				      xdl_realloc(recs, narec * sizeof(recinfo_t)))) {
 
 					xdl_free(recs);
 					return -1;
@@ -202,7 +203,11 @@ static int xdl_init_recfile(mmfile_t *mf, recfile_t *rf) {
 			if (!(eol = memchr(cur, '\n', top - cur)))
 				eol = top - 1;
 			recs[nrec].size = (long) (eol - cur) + 1;
-			nrec++;
+			if (ispatch && *cur == '\\' && nrec > 0 && recs[nrec - 1].size > 0 &&
+			    recs[nrec - 1].ptr[recs[nrec - 1].size - 1] == '\n')
+				recs[nrec - 1].size--;
+			else
+				nrec++;
 			cur = eol + 1;
 		}
 	}
@@ -232,7 +237,7 @@ static char const *xdl_recfile_get(recfile_t *rf, long irec, long *size) {
 
 static int xdl_init_patch(mmfile_t *mf, long flags, patch_t *pch) {
 
-	if (xdl_init_recfile(mf, &pch->rf) < 0) {
+	if (xdl_init_recfile(mf, 1, &pch->rf) < 0) {
 
 		return -1;
 	}
@@ -595,7 +600,7 @@ int xdl_patch(mmfile_t *mf, mmfile_t *mfp, int mode, xdemitcb_t *ecb,
 	recfile_t rff;
 	patch_t pch;
 
-	if (xdl_init_recfile(mf, &rff) < 0) {
+	if (xdl_init_recfile(mf, 0, &rff) < 0) {
 
 		return -1;
 	}
