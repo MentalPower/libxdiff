@@ -83,35 +83,67 @@ static int xdl_load_hunk_info(char const *line, long size, hunkinfo_t *hki) {
 	line += 4;
 	size -= 4;
 
-	for (; size && !XDL_ISDIGIT(*line); size--, line++);
 	if (!size || !XDL_ISDIGIT(*line))
 		return -1;
-	if ((hki->s1 = xdl_atol(line, &next) - 1) < 0)
+	hki->s1 = xdl_atol(line, &next);
+	size -= next - line;
+	line = next;
+	if (!size)
+		return -1;
+	if (*line == ',') {
+		size--, line++;
+		if (!size || !XDL_ISDIGIT(*line))
+			return -1;
+		hki->c1 = xdl_atol(line, &next);
+		size -= next - line;
+		line = next;
+		if (!size || *line != ' ')
+			return -1;
+		size--, line++;
+	} else if (*line == ' ') {
+		size--, line++;
+		hki->c1 = hki->s1;
 		hki->s1 = 0;
-	size -= next - line;
-	line = next;
+	} else
+		return -1;
 
-	for (; size && !XDL_ISDIGIT(*line); size--, line++);
+	if (!size || *line != '+')
+		return -1;
+	size--, line++;
 	if (!size || !XDL_ISDIGIT(*line))
 		return -1;
-	hki->c1 = xdl_atol(line, &next);
+	hki->s2 = xdl_atol(line, &next);
 	size -= next - line;
 	line = next;
-
-	for (; size && !XDL_ISDIGIT(*line); size--, line++);
-	if (!size || !XDL_ISDIGIT(*line))
+	if (!size)
 		return -1;
-	if ((hki->s2 = xdl_atol(line, &next) - 1) < 0)
+	if (*line == ',') {
+		size--, line++;
+		if (!size || !XDL_ISDIGIT(*line))
+			return -1;
+		hki->c2 = xdl_atol(line, &next);
+		size -= next - line;
+		line = next;
+		if (!size || *line != ' ')
+			return -1;
+		size--, line++;
+	} else if (*line == ' ') {
+		size--, line++;
+		hki->c2 = hki->s2;
 		hki->s2 = 0;
-	size -= next - line;
-	line = next;
-
-	for (; size && !XDL_ISDIGIT(*line); size--, line++);
-	if (!size || !XDL_ISDIGIT(*line))
+	} else
 		return -1;
-	hki->c2 = xdl_atol(line, &next);
-	size -= next - line;
-	line = next;
+	if (size < 2 || memcmp(line, "@@", 2) != 0)
+		return -1;
+
+	/*
+	 * We start from zero, so decrement by one unless it's the special position
+	 * '0' inside the unified diff (new or deleted file).
+	 */
+	if (hki->s1 > 0)
+		hki->s1--;
+	if (hki->s2 > 0)
+		hki->s2--;
 
 	return 0;
 }
