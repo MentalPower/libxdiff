@@ -86,7 +86,7 @@ int xdl_seek_mmfile(mmfile_t *mmf, long off) {
 				return 0;
 			}
 			off -= bsize;
-		} while (xdl_mmfile_first(mmf, &bsize));
+		} while (xdl_mmfile_next(mmf, &bsize));
 	}
 
 	return -1;
@@ -228,6 +228,32 @@ long xdl_mmfile_ptradd(mmfile_t *mmf, char *ptr, long size, unsigned long flags)
 }
 
 
+long xdl_copy_mmfile(mmfile_t *mmf, long size, xdemitcb_t *ecb) {
+	long rsize, csize;
+	mmblock_t *rcur;
+	mmbuffer_t mb;
+
+	for (rsize = 0, rcur = mmf->rcur; rcur && rsize < size;) {
+		if (mmf->rpos >= rcur->size) {
+			if (!(mmf->rcur = rcur = rcur->next))
+				break;
+			mmf->rpos = 0;
+		}
+		csize = XDL_MIN(size - rsize, rcur->size - mmf->rpos);
+		mb.ptr = rcur->ptr + mmf->rpos;
+		mb.size = csize;
+		if (ecb->outf(ecb->priv, &mb, 1) < 0) {
+
+			return rsize;
+		}
+		rsize += csize;
+		mmf->rpos += csize;
+	}
+
+	return rsize;
+}
+
+
 void *xdl_mmfile_first(mmfile_t *mmf, long *size) {
 
 	if (!(mmf->rcur = mmf->head))
@@ -271,7 +297,7 @@ int xdl_mmfile_cmp(mmfile_t *mmf1, mmfile_t *mmf2) {
 			return 0;
 		return -*cur2;
 	} else if (!cur2)
-		return *cur1;
+			return *cur1;
 	for (;;) {
 		if (cur1 >= top1) {
 			if ((cur1 = blk1 = xdl_mmfile_next(mmf1, &bsize1)) != NULL)
@@ -286,7 +312,7 @@ int xdl_mmfile_cmp(mmfile_t *mmf1, mmfile_t *mmf2) {
 				break;
 			return -*cur2;
 		} else if (!cur2)
-			return *cur1;
+				return *cur1;
 		size1 = top1 - cur1;
 		size2 = top2 - cur2;
 		size = XDL_MIN(size1, size2);

@@ -100,6 +100,7 @@ long xdl_write_mmfile(mmfile_t *mmf, void const *data, long size);
 long xdl_writem_mmfile(mmfile_t *mmf, mmbuffer_t *mb, int nbuf);
 void *xdl_mmfile_writeallocate(mmfile_t *mmf, long size);
 long xdl_mmfile_ptradd(mmfile_t *mmf, char *ptr, long size, unsigned long flags);
+long xdl_copy_mmfile(mmfile_t *mmf, long size, xdemitcb_t *ecb);
 void *xdl_mmfile_first(mmfile_t *mmf, long *size);
 void *xdl_mmfile_next(mmfile_t *mmf, long *size);
 long xdl_mmfile_size(mmfile_t *mmf);

@@ -24,37 +24,19 @@
 
 
 
-
 static int xdl_copy_range(mmfile_t *mmf, long off, long size, xdemitcb_t *ecb);
 
 
 
-
 static int xdl_copy_range(mmfile_t *mmf, long off, long size, xdemitcb_t *ecb) {
-	long cpsize, rsize;
-	mmbuffer_t mb;
-	char buf[512];
 
 	if (xdl_seek_mmfile(mmf, off) < 0) {
 
 		return -1;
 	}
-	for (cpsize = 0; cpsize < size;) {
-		rsize = XDL_MIN(size - cpsize, sizeof(buf));
-		if (xdl_read_mmfile(mmf, buf, rsize) != rsize) {
+	if (xdl_copy_mmfile(mmf, size, ecb) != size) {
 
-			return -1;
-		}
-
-		mb.ptr = buf;
-		mb.size = rsize;
-
-		if (ecb->outf(ecb->priv, &mb, 1) < 0) {
-
-			return -1;
-		}
-
-		cpsize += rsize;
+		return -1;
 	}
 
 	return 0;
@@ -73,7 +55,6 @@ int xdl_bpatch(mmfile_t *mmf, mmfile_t *mmfp, xdemitcb_t *ecb) {
 
 		return -1;
 	}
-
 	ofp = xdl_mmf_adler32(mmf);
 	osize = xdl_mmfile_size(mmf);
 	XDL_LE32_GET(blk, fp);
