@@ -608,4 +608,4 @@ BUGS
 
 
 
-GNU                                  0.22                          LibXDiff(3)
+GNU                                  0.23                          LibXDiff(3)

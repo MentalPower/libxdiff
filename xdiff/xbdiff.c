@@ -23,8 +23,6 @@
 #include "xinclude.h"
 
 
-
-
 typedef struct s_bdrecord {
 	struct s_bdrecord *next;
 	unsigned long fp;
@@ -37,13 +35,6 @@ typedef struct s_bdfile {
 	unsigned int fphbits;
 	bdrecord_t **fphash;
 } bdfile_t;
-
-
-
-
-static int xdl_prepare_bdfile(mmbuffer_t *mmb, long fpbsize, bdfile_t *bdf);
-static void xdl_free_bdfile(bdfile_t *bdf);
-
 
 
 

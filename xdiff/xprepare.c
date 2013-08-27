@@ -23,10 +23,9 @@
 #include "xinclude.h"
 
 
-
 #define XDL_KPDIS_RUN 4
 #define XDL_MAX_EQLIMIT 1024
-
+#define XDL_SIMSCAN_WINDOWN 100
 
 
 typedef struct s_xdlclass {
@@ -44,22 +43,6 @@ typedef struct s_xdlclassifier {
 	chastore_t ncha;
 	long count;
 } xdlclassifier_t;
-
-
-
-
-static int xdl_init_classifier(xdlclassifier_t *cf, long size);
-static void xdl_free_classifier(xdlclassifier_t *cf);
-static int xdl_classify_record(xdlclassifier_t *cf, xrecord_t **rhash, unsigned int hbits,
-			       xrecord_t *rec);
-static int xdl_prepare_ctx(mmfile_t *mf, long narec, xpparam_t const *xpp,
-			   xdlclassifier_t *cf, xdfile_t *xdf);
-static void xdl_free_ctx(xdfile_t *xdf);
-static int xdl_clean_mmatch(char const *dis, long i, long s, long e);
-static int xdl_cleanup_records(xdfile_t *xdf1, xdfile_t *xdf2);
-static int xdl_trim_ends(xdfile_t *xdf1, xdfile_t *xdf2);
-static int xdl_optimize_ctxs(xdfile_t *xdf1, xdfile_t *xdf2);
-
 
 
 
@@ -88,7 +71,6 @@ static int xdl_init_classifier(xdlclassifier_t *cf, long size) {
 
 
 static void xdl_free_classifier(xdlclassifier_t *cf) {
-
 	xdl_free(cf->rchash);
 	xdl_cha_free(&cf->ncha);
 }
@@ -207,14 +189,14 @@ static int xdl_prepare_ctx(mmfile_t *mf, long narec, xpparam_t const *xpp,
 		}
 	}
 
-	if (!(rchg = (char *) xdl_malloc((nrec + 2) * sizeof(char)))) {
+	if (!(rchg = (char *) xdl_malloc(nrec + 2))) {
 
 		xdl_free(rhash);
 		xdl_free(recs);
 		xdl_cha_free(&xdf->rcha);
 		return -1;
 	}
-	memset(rchg, 0, (nrec + 2) * sizeof(char));
+	memset(rchg, 0, nrec + 2);
 
 	if (!(rindex = (long *) xdl_malloc((nrec + 1) * sizeof(long)))) {
 
@@ -250,7 +232,6 @@ static int xdl_prepare_ctx(mmfile_t *mf, long narec, xpparam_t const *xpp,
 
 
 static void xdl_free_ctx(xdfile_t *xdf) {
-
 	xdl_free(xdf->rhash);
 	xdl_free(xdf->rindex);
 	xdl_free(xdf->rchg - 1);
@@ -260,53 +241,20 @@ static void xdl_free_ctx(xdfile_t *xdf) {
 }
 
 
-int xdl_prepare_env(mmfile_t *mf1, mmfile_t *mf2, xpparam_t const *xpp,
-		    xdfenv_t *xe) {
-	long enl1, enl2;
-	xdlclassifier_t cf;
-
-	enl1 = xdl_guess_lines(mf1) + 1;
-	enl2 = xdl_guess_lines(mf2) + 1;
-
-	if (xdl_init_classifier(&cf, enl1 + enl2 + 1) < 0) {
-
-		return -1;
-	}
-
-	if (xdl_prepare_ctx(mf1, enl1, xpp, &cf, &xe->xdf1) < 0) {
-
-		xdl_free_classifier(&cf);
-		return -1;
-	}
-	if (xdl_prepare_ctx(mf2, enl2, xpp, &cf, &xe->xdf2) < 0) {
-
-		xdl_free_ctx(&xe->xdf1);
-		xdl_free_classifier(&cf);
-		return -1;
-	}
-
-	xdl_free_classifier(&cf);
-
-	if (xdl_optimize_ctxs(&xe->xdf1, &xe->xdf2) < 0) {
-
-		xdl_free_ctx(&xe->xdf2);
-		xdl_free_ctx(&xe->xdf1);
-		return -1;
-	}
-
-	return 0;
-}
-
-
-void xdl_free_env(xdfenv_t *xe) {
-
-	xdl_free_ctx(&xe->xdf2);
-	xdl_free_ctx(&xe->xdf1);
-}
-
-
 static int xdl_clean_mmatch(char const *dis, long i, long s, long e) {
 	long r, rdis0, rpdis0, rdis1, rpdis1;
+
+	/*
+	 * Limits the window the is examined during the similar-lines
+	 * scan. The loops below stops when dis[i - r] == 1 (line that
+	 * has no match), but there are corner cases where the loop
+	 * proceed all the way to the extremities by causing huge
+	 * performance penalties in case of big files.
+	 */
+	if (i - s > XDL_SIMSCAN_WINDOWN)
+		s = i - XDL_SIMSCAN_WINDOWN;
+	if (e - i > XDL_SIMSCAN_WINDOWN)
+		e = i + XDL_SIMSCAN_WINDOWN;
 
 	/*
 	 * Scans the lines before 'i' to find a run of lines that either
@@ -453,7 +401,6 @@ static int xdl_trim_ends(xdfile_t *xdf1, xdfile_t *xdf2) {
 
 
 static int xdl_optimize_ctxs(xdfile_t *xdf1, xdfile_t *xdf2) {
-
 	if (xdl_trim_ends(xdf1, xdf2) < 0 ||
 	    xdl_cleanup_records(xdf1, xdf2) < 0) {
 
@@ -461,5 +408,49 @@ static int xdl_optimize_ctxs(xdfile_t *xdf1, xdfile_t *xdf2) {
 	}
 
 	return 0;
+}
+
+
+int xdl_prepare_env(mmfile_t *mf1, mmfile_t *mf2, xpparam_t const *xpp,
+		    xdfenv_t *xe) {
+	long enl1, enl2;
+	xdlclassifier_t cf;
+
+	enl1 = xdl_guess_lines(mf1) + 1;
+	enl2 = xdl_guess_lines(mf2) + 1;
+
+	if (xdl_init_classifier(&cf, enl1 + enl2 + 1) < 0) {
+
+		return -1;
+	}
+
+	if (xdl_prepare_ctx(mf1, enl1, xpp, &cf, &xe->xdf1) < 0) {
+
+		xdl_free_classifier(&cf);
+		return -1;
+	}
+	if (xdl_prepare_ctx(mf2, enl2, xpp, &cf, &xe->xdf2) < 0) {
+
+		xdl_free_ctx(&xe->xdf1);
+		xdl_free_classifier(&cf);
+		return -1;
+	}
+
+	xdl_free_classifier(&cf);
+
+	if (xdl_optimize_ctxs(&xe->xdf1, &xe->xdf2) < 0) {
+
+		xdl_free_ctx(&xe->xdf2);
+		xdl_free_ctx(&xe->xdf1);
+		return -1;
+	}
+
+	return 0;
+}
+
+
+void xdl_free_env(xdfenv_t *xe) {
+	xdl_free_ctx(&xe->xdf2);
+	xdl_free_ctx(&xe->xdf1);
 }
 

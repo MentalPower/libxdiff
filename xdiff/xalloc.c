@@ -29,27 +29,23 @@ static memallocator_t xmalt = {NULL, NULL, NULL};
 
 
 int xdl_set_allocator(memallocator_t const *malt) {
-
 	xmalt = *malt;
 	return 0;
 }
 
 
 void *xdl_malloc(unsigned int size) {
-
 	return xmalt.malloc ? xmalt.malloc(xmalt.priv, size): NULL;
 }
 
 
 void xdl_free(void *ptr) {
-
 	if (xmalt.free)
 		xmalt.free(xmalt.priv, ptr);
 }
 
 
 void *xdl_realloc(void *ptr, unsigned int size) {
-
 	return xmalt.realloc ? xmalt.realloc(xmalt.priv, ptr, size): NULL;
 }
 

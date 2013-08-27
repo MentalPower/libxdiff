@@ -41,12 +41,12 @@
 
 
 
-#define XRAB_SLIDE(v, c) do { \
-	if (++wpos == XRAB_WNDSIZE) wpos = 0; \
-	v ^= U[wbuf[wpos]]; \
-	wbuf[wpos] = (c); \
-	v = ((v << 8) | (c)) ^ T[v >> XRAB_SHIFT]; \
-} while (0)
+#define XRAB_SLIDE(v, c) do {					\
+		if (++wpos == XRAB_WNDSIZE) wpos = 0;		\
+		v ^= U[wbuf[wpos]];				\
+		wbuf[wpos] = (c);				\
+		v = ((v << 8) | (c)) ^ T[v >> XRAB_SHIFT];	\
+	} while (0)
 
 
 #define XRAB_MINCPYSIZE 12
@@ -74,30 +74,13 @@ typedef struct s_xrabcpyi_arena {
 
 
 
-
-static void xrab_init_cpyarena(xrabcpyi_arena_t *aca);
-static void xrab_free_cpyarena(xrabcpyi_arena_t *aca);
-static int xrab_add_cpy(xrabcpyi_arena_t *aca, xrabcpyi_t const *rcpy);
-static long xrab_cmnseq(unsigned char const *data, long start, long size);
-static int xrab_build_ctx(unsigned char const *data, long size, xrabctx_t *ctx);
-static void xrab_free_ctx(xrabctx_t *ctx);
-static int xrab_diff(unsigned char const *data, long size, xrabctx_t *ctx,
-		     xrabcpyi_arena_t *aca);
-static int xrab_tune_cpyarena(unsigned char const *data, long size, xrabctx_t *ctx,
-			      xrabcpyi_arena_t *aca);
-
-
-
-
 static void xrab_init_cpyarena(xrabcpyi_arena_t *aca) {
-
 	aca->cnt = aca->size = 0;
 	aca->acpy = NULL;
 }
 
 
 static void xrab_free_cpyarena(xrabcpyi_arena_t *aca) {
-
 	xdl_free(aca->acpy);
 }
 

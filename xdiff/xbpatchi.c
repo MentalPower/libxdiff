@@ -33,20 +33,7 @@ typedef struct s_mmoffbuffer {
 
 
 
-static int xdl_copy_range(mmfile_t *mmf, long off, long size, xdemitcb_t *ecb);
-static unsigned long xdl_mmob_adler32(mmoffbuffer_t *obf, int n);
-static long xdl_mmob_size(mmoffbuffer_t *obf, int n);
-static mmoffbuffer_t *xdl_mmob_new(mmoffbuffer_t **probf, int *pnobf, int *paobf);
-static int xdl_mmob_find_cntr(mmoffbuffer_t *obf, int n, long off);
-static int xdl_bmerge(mmoffbuffer_t *obf, int n, mmbuffer_t *mbfp, mmoffbuffer_t **probf,
-		      int *pnobf);
-static int xdl_bmerge_synt(mmoffbuffer_t *obf, int n, xdemitcb_t *ecb);
-
-
-
-
 static int xdl_copy_range(mmfile_t *mmf, long off, long size, xdemitcb_t *ecb) {
-
 	if (xdl_seek_mmfile(mmf, off) < 0) {
 
 		return -1;

@@ -314,7 +314,7 @@ int xdl_mmfile_cmp(mmfile_t *mmf1, mmfile_t *mmf2) {
 			return 0;
 		return -*cur2;
 	} else if (!cur2)
-			return xdl_mmfile_size(mmf1) ? *cur1: 0;
+		return xdl_mmfile_size(mmf1) ? *cur1: 0;
 	for (;;) {
 		if (cur1 >= top1) {
 			if ((cur1 = blk1 = xdl_mmfile_next(mmf1, &bsize1)) != NULL)
@@ -329,7 +329,7 @@ int xdl_mmfile_cmp(mmfile_t *mmf1, mmfile_t *mmf2) {
 				break;
 			return -*cur2;
 		} else if (!cur2)
-				return *cur1;
+			return *cur1;
 		size1 = top1 - cur1;
 		size2 = top2 - cur2;
 		size = XDL_MIN(size1, size2);
