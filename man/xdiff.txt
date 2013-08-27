@@ -84,28 +84,45 @@ DESCRIPTION
               tor structure contains the following members:
 
                    typedef struct s_memallocator {
-                        void *(*malloc)(unsigned int size);
-                        void (*free)(void * ptr);
-                        void *(*realloc)(void *ptr, unsigned int nsize);
+                        void *priv;
+                        void *(*malloc)(void *priv, unsigned int size);
+                        void (*free)(void *priv, void *ptr);
+                        void *(*realloc)(void *priv, void *ptr, unsigned int nsize);
                    } memallocator_t;
 
               The malloc() function pointer will be used by LibXDiff to
               request a memory block of size bytes. The free() function
               pointer will be called to free a previously allocated block ptr
               , while the realloc() will be used to resize the ptr to a new
-              nsize size in bytes. The LibXDiff user must call xdl_set_alloca-
-              tor() before starting using the library, otherwise LibXDiff
-              functions will fail due to the lack of memory allocation sup-
-              port.  A typical initialization sequence for POSIX systems will
-              use the standard malloc(3), free(3), realloc(3) and will look
-              like:
+              nsize size in bytes. The priv structure member will be passed to
+              the malloc(),free(),realloc() functions as first parameter. The
+              LibXDiff user must call xdl_set_allocator() before starting
+              using the library, otherwise LibXDiff functions will fail due to
+              the lack of memory allocation support.  A typical initialization
+              sequence for POSIX systems will use the standard malloc(3),
+              free(3), realloc(3) and will look like:
 
-                   memallocator_t malt;
+                   void *wrap_malloc(void *priv, unsigned int size) {
+                        return malloc(size);
+                   }
 
-                   malt.malloc = malloc;
-                   malt.free = free;
-                   malt.realloc = realloc;
-                   xdl_set_allocator(&malt);
+                   void wrap_free(void *priv, void *ptr) {
+                        free(ptr);
+                   }
+
+                   void *wrap_realloc(void *priv, void *ptr, unsigned int size) {
+                        return realloc(ptr, size);
+                   }
+
+                   void my_init_xdiff(void) {
+                        memallocator_t malt;
+
+                        malt.priv = NULL;
+                        malt.malloc = wrap_malloc;
+                        malt.free = wrap_free;
+                        malt.realloc = wrap_realloc;
+                        xdl_set_allocator(&malt);
+                   }
 
 
 
@@ -376,8 +393,8 @@ DESCRIPTION
               result file while the rjecb will be used to emit all differen-
               tial chunks that cannot be applied.  Like explained above, call-
               backs are always called with entire records to guarantee atomic-
-              ity of the resulting output.  The function returns 0 if suc-
-              ceeded or -1 if an error occurred during the patch operation.
+              ity of the resulting output.  The function returns 0 if
+              succeeded or -1 if an error occurred during the patch operation.
 
 
        int xdl_bdiff(mmfile_t *mmf1, mmfile_t *mmf2, bdiffparam_t const *bdp,
@@ -538,4 +555,4 @@ BUGS
 
 
 
-GNU                                   0.8                          LibXDiff(3)
+GNU                                   0.9                          LibXDiff(3)

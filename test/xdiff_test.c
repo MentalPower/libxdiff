@@ -56,6 +56,24 @@ void usage(char const *prg) {
 }
 
 
+static void *wrap_malloc(void *priv, unsigned int size) {
+
+	return malloc(size);
+}
+
+
+static void wrap_free(void *priv, void *ptr) {
+
+	free(ptr);
+}
+
+
+static void *wrap_realloc(void *priv, void *ptr, unsigned int size) {
+
+	realloc(ptr, size);
+}
+
+
 int main(int argc, char *argv[]) {
 	int do_diff, do_patch, do_bdiff, do_bpatch;
 	memallocator_t malt;
@@ -70,9 +88,10 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	malt.malloc = malloc;
-	malt.free = free;
-	malt.realloc = realloc;
+	malt.priv = NULL;
+	malt.malloc = wrap_malloc;
+	malt.free = wrap_free;
+	malt.realloc = wrap_realloc;
 	xdl_set_allocator(&malt);
 
 	do_diff = do_patch = do_bdiff = do_bpatch = 0;

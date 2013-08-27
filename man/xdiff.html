@@ -1,7 +1,7 @@
 <HTML><HEAD><TITLE>Manpage of LibXDiff</TITLE>
 </HEAD><BODY text="#0000FF" bgcolor="#FFFFFF">
 <H1>LibXDiff</H1>
-Section: File Differential Library (3)<BR>Updated: 0.8<BR><A HREF="#index">Index</A>
+Section: File Differential Library (3)<BR>Updated: 0.9<BR><A HREF="#index">Index</A>
 <A HREF="http://localhost/cgi-bin/man/man2html">Return to Main Contents</A><HR>
 
 <A NAME="lbAB">&nbsp;</A>
@@ -115,9 +115,10 @@ The memory allocator structure contains the following members:
 <PRE>
 
         typedef struct s_memallocator {
-                void *(*malloc)(unsigned int size);
-                void (*free)(void * ptr);
-                void *(*realloc)(void *ptr, unsigned int nsize);
+                void *priv;
+                void *(*malloc)(void *priv, unsigned int size);
+                void (*free)(void *priv, void *ptr);
+                void *(*realloc)(void *priv, void *ptr, unsigned int nsize);
         } memallocator_t;
 
 </PRE>
@@ -147,6 +148,12 @@ to a new
 <I>nsize</I>
 
 size in bytes. The
+<B>priv</B>
+
+structure member will be passed to the
+<B>malloc</B>(),<B>free</B>(),<B>realloc</B>()
+
+functions as first parameter. The
 <B>LibXDiff</B>
 
 user must call
@@ -169,12 +176,27 @@ systems will use the standard
 and will look like:
 <PRE>
 
-        memallocator_t malt;
+        void *wrap_malloc(void *priv, unsigned int size) {
+                return malloc(size);
+        }
 
-        malt.malloc = malloc;
-        malt.free = free;
-        malt.realloc = realloc;
-        xdl_set_allocator(&amp;malt);
+        void wrap_free(void *priv, void *ptr) {
+                free(ptr);
+        }
+
+        void *wrap_realloc(void *priv, void *ptr, unsigned int size) {
+                return realloc(ptr, size);
+        }
+
+        void my_init_xdiff(void) {
+                memallocator_t malt;
+
+                malt.priv = NULL;
+                malt.malloc = wrap_malloc;
+                malt.free = wrap_free;
+                malt.realloc = wrap_realloc;
+                xdl_set_allocator(&amp;malt);
+        }
 
 </PRE>
 
@@ -978,6 +1000,6 @@ There are no known bugs.  Bug reports and comments to Davide Libenzi
 This document was created by
 <A HREF="http://localhost/cgi-bin/man/man2html">man2html</A>,
 using the manual pages.<BR>
-Time: 17:08:02 GMT, May 03, 2004
+Time: 02:48:57 GMT, September 27, 2004
 </BODY>
 </HTML>

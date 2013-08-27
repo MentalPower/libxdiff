@@ -19,7 +19,7 @@
 .\"  Davide Libenzi <davidel@xmailserver.org>
 .\"
 .na
-.TH LibXDiff 3 "0.8" "GNU" "File Differential Library"
+.TH LibXDiff 3 "0.9" "GNU" "File Differential Library"
 .SH NAME
 
 xdl_set_allocator, xdl_malloc, xdl_free, xdl_realloc, xdl_init_mmfile, xdl_free_mmfile,
@@ -134,9 +134,10 @@ The memory allocator structure contains the following members:
 .nf
 
 	typedef struct s_memallocator {
-		void *(*malloc)(unsigned int size);
-		void (*free)(void * ptr);
-		void *(*realloc)(void *ptr, unsigned int nsize);
+		void *priv;
+		void *(*malloc)(void *priv, unsigned int size);
+		void (*free)(void *priv, void *ptr);
+		void *(*realloc)(void *priv, void *ptr, unsigned int nsize);
 	} memallocator_t;
 
 .fi
@@ -157,6 +158,10 @@ will be used to resize the
 to a new
 .I nsize
 size in bytes. The
+.B priv
+structure member will be passed to the
+.BR malloc (), free (), realloc ()
+functions as first parameter. The
 .B LibXDiff
 user must call
 .BR xdl_set_allocator ()
@@ -172,12 +177,27 @@ systems will use the standard
 and will look like:
 .nf
 
-	memallocator_t malt;
+	void *wrap_malloc(void *priv, unsigned int size) {
+		return malloc(size);
+	}
 
-	malt.malloc = malloc;
-	malt.free = free;
-	malt.realloc = realloc;
-	xdl_set_allocator(&malt);
+	void wrap_free(void *priv, void *ptr) {
+		free(ptr);
+	}
+
+	void *wrap_realloc(void *priv, void *ptr, unsigned int size) {
+		return realloc(ptr, size);
+	}
+
+	void my_init_xdiff(void) {
+		memallocator_t malt;
+
+		malt.priv = NULL;
+		malt.malloc = wrap_malloc;
+		malt.free = wrap_free;
+		malt.realloc = wrap_realloc;
+		xdl_set_allocator(&malt);
+	}
 
 .fi
 

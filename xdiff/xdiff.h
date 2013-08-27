@@ -43,9 +43,10 @@ extern "C" {
 
 
 typedef struct s_memallocator {
-	void *(*malloc)(unsigned int);
-	void (*free)(void *);
-	void *(*realloc)(void *, unsigned int);
+	void *priv;
+	void *(*malloc)(void *, unsigned int);
+	void (*free)(void *, void *);
+	void *(*realloc)(void *, void *, unsigned int);
 } memallocator_t;
 
 typedef struct s_mmblock {
