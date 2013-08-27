@@ -1,0 +1,69 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta name="Author" content="Davide Libenzi">
+  <meta name="GENERATOR" content="Mozilla 1.2">
+  <meta name="Keywords"
+ content="diff,patch,library,portable,file,difference,binary diff,binary patch,myers,macdonald">
+  <title>LibXDiff Home Page</title>
+</head>
+<body style="color: rgb(0, 0, 255);">
+<p align="center"><font size="+1"><b>LibXDiff</b><br>
+by<br>
+<a href="http://www.xmailserver.org/davide.html"> Davide Libenzi</a> &lt;<a
+ href="mailto:davidel@xmailserver.org">davidel@xmailserver.org</a>&gt;<br>
+</font></p>
+<p align="left">&nbsp;<br>
+The <b>LibXDiff</b> library implements basic and yet complete
+functionalities to create file differences/patches to both binary and
+text files. The library uses memory files as file abstraction to achieve
+both performance and portability. For binary files, <b>LibXDiff</b>
+implements (with some modification) the algorithm described in <i>File
+System Support for Delta Compression</i> by <i>Joshua P. MacDonald</i>, 
+while for text files it follows directives described in <i>An O(ND)
+Difference Algorithm and Its Variations</i> by <i>Eugene W. Myers</i>.
+Memory files used by the library are basically a collection of buffers
+that store the file content. There are two different requirements for
+memory files when passed to diff/patch functions. Text files for
+diff/patch functions require that a single line do not have to spawn
+across two different memory file blocks. Binary diff/patch functions
+require memory files to be compact. A compact memory files is a file
+whose content is stored inside a single block. Functionalities inside
+the library are available to satisfy these rules. Using the <b>XDL_MMF_ATOMIC</b>
+memory file flag it is possible to make writes to not split the written
+record across different blocks, while the functions <b>xdl_mmfile_iscompact</b>()
+, <b>xdl_mmfile_compact</b>() and <b>xdl_mmfile_writeallocate</b>()
+are usefull to test if the file is compact and to create a compacted
+version of the file itself. The text file differential output uses the
+raw unified output format, by omitting the file header since the result
+is always relative to a single compare operation (between two files).
+The output format of the binary patch file is proprietary (and binary)
+and it is basically a collection of copy and insert commands, like
+described inside the MacDonald paper. The library is compatible with
+almost every Unix implementation (configure script) and it is also
+compatible with Windows through custom (nmake) make files.<br>
+</p>
+<p align="left"><br>
+</p>
+<p style="text-align: center;"><b><font size="+1">Documentation<br>
+</font></b></p>
+<div style="text-align: left;"><br>
+The <span style="font-weight: bold;">LibXDiff</span> library man page is
+available : <a href="xdiff.html">HTML</a>&nbsp;&nbsp;&nbsp;<a
+ href="xdiff.txt">TXT</a>&nbsp;&nbsp;&nbsp; <a href="xdiff.pdf">PDF<br>
+</a><br>
+<br>
+</div>
+<p align="center"><b><font size="+1">License and Software</font></b></p>
+<p align="left"><span style="font-weight: bold;">LibXDiff</span>&nbsp; is
+made available through the <a
+ href="http://www.gnu.org/copyleft/lesser.html">GNU LGPL</a> license
+together with the complete sources. Please read carefully the <a
+ href="http://www.gnu.org/copyleft/lesser.html">license</a> before using
+the software. The latest library package is available here :</p>
+<p align="left"><a href="http://www.xmailserver.org/libxdiff-0.1.tar.gz">Version
+0.1</a></p>
+<p align="left"><br>
+&nbsp;</p>
+</body>
+</html>
