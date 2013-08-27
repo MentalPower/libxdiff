@@ -361,7 +361,6 @@ DESCRIPTION
               tion and can be considered as read only.  The mode parameter can
               be one of the following values :
 
-
               XDL_PATCH_NORMAL Perform standard patching like if the patch
               memory file mmfp has been created using mmf as "old" file.
 
@@ -370,6 +369,12 @@ DESCRIPTION
               "new" file during the differential operation ( xdl_diff() ). The
               result of the operation will then be the file content that was
               used as "old" file during the differential operation.
+
+              The following flags can be specified (by or-ing them) to one of
+              the above:
+
+              XDL_PATCH_IGNOREBSPACE Ignore the whitespace at the beginning
+              and the end of the line.
 
               The ecb will be used by the patch algorithm to create the result
               file while the rjecb will be used to emit all differential
@@ -393,8 +398,8 @@ DESCRIPTION
               result file while the rjecb will be used to emit all differen-
               tial chunks that cannot be applied.  Like explained above, call-
               backs are always called with entire records to guarantee atomic-
-              ity of the resulting output.  The function returns 0 if
-              succeeded or -1 if an error occurred during the patch operation.
+              ity of the resulting output.  The function returns 0 if suc-
+              ceeded or -1 if an error occurred during the patch operation.
 
 
        int xdl_bdiff(mmfile_t *mmf1, mmfile_t *mmf2, bdiffparam_t const *bdp,
@@ -555,4 +560,4 @@ BUGS
 
 
 
-GNU                                  0.16                          LibXDiff(3)
+GNU                                  0.17                          LibXDiff(3)

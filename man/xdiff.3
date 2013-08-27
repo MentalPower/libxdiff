@@ -19,7 +19,7 @@
 .\"  Davide Libenzi <davidel@xmailserver.org>
 .\"
 .na
-.TH LibXDiff 3 "0.16" "GNU" "File Differential Library"
+.TH LibXDiff 3 "0.17" "GNU" "File Differential Library"
 .SH NAME
 
 xdl_set_allocator, xdl_malloc, xdl_free, xdl_realloc, xdl_init_mmfile, xdl_free_mmfile,
@@ -546,7 +546,6 @@ changed during the operation and can be considered as read only.
 The
 .I mode
 parameter can be one of the following values :
-
 .IP
 .B XDL_PATCH_NORMAL
 Perform standard patching like if the patch memory file
@@ -563,6 +562,11 @@ the differential operation (
 .BR xdl_diff ()
 ). The result of the operation will then be the file content that was used
 as "old" file during the differential operation.
+
+The following flags can be specified (by or-ing them) to one of the above:
+.IP
+.B XDL_PATCH_IGNOREBSPACE
+Ignore the whitespace at the beginning and the end of the line.
 
 The
 .I ecb

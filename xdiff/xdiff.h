@@ -32,7 +32,9 @@ extern "C" {
 
 #define XDL_PATCH_NORMAL '-'
 #define XDL_PATCH_REVERSE '+'
-
+#define XDL_PATCH_MODEMASK ((1 << 8) - 1)
+#define XDL_PATCH_IGNOREBSPACE (1 << 8)
+	
 #define XDL_MMB_READONLY (1 << 0)
 
 #define XDL_MMF_ATOMIC (1 << 0)
