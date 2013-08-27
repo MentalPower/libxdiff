@@ -491,4 +491,4 @@ BUGS
 
 
 
-GNU                                   0.6                          LibXDiff(3)
+GNU                                   0.7                          LibXDiff(3)

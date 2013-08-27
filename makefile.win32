@@ -63,6 +63,7 @@ XDIFFLIB_OBJS= \
 	"$(OUTDIR)\xpatchi.obj" \
 	"$(OUTDIR)\xprepare.obj" \
 	"$(OUTDIR)\xversion.obj" \
+	"$(OUTDIR)\xalloc.obj" \
 	"$(OUTDIR)\xutils.obj"
 
 XREGRESSION_OBJS= \
@@ -101,6 +102,10 @@ CLEAN :
 <<
 
 
+
+SOURCE="$(XDIFF_SRCDIR)\xalloc.c"
+"$(OUTDIR)\xalloc.obj" : $(SOURCE) "$(OUTDIR)"
+	$(CPP) $(CPP_FLAGS) $(SOURCE)
 
 SOURCE="$(XDIFF_SRCDIR)\xadler32.c"
 "$(OUTDIR)\xadler32.obj" : $(SOURCE) "$(OUTDIR)"
