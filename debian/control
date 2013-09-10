@@ -1,0 +1,38 @@
+Source: libxdiff
+Priority: extra
+Maintainer: Esteban Santana Santana <MentalPower@GMail.com>
+Build-Depends: debhelper (>= 9.0.0), dh-autoreconf, hardening-wrapper
+Standards-Version: 3.9.3
+Section: libs
+Homepage: http://www.xmailserver.org/xdiff-lib.html
+
+Package: libxdiff-dev
+Section: libdevel
+Architecture: any
+Depends: libxdiff0 (= ${binary:Version}), ${misc:Depends}
+Description: basic and yet complete functionalities to create file differences/patches
+ create file differences/patches to both binary and text files. It uses
+ memory files as file abstraction to achieve both performance and
+ portability. For binary files, it implements both (with some modification)
+ the algorithm described in "File System Support for Delta Compression" by
+ Joshua P. MacDonald and the algorithm described in "Fingerprinting By Random
+ Polynomials" by Michael O. Rabin. For text files, it follows directives
+ described in "An O(ND) Difference Algorithm and Its Variations" by
+ Eugene W. Myers. Memory files used by the library are basically a collection
+ of buffers that store the file content.
+
+Package: libxdiff0
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: basic and yet complete functionalities to create file differences/patches
+ The LibXDiff library implements basic and yet complete functionalities to
+ create file differences/patches to both binary and text files. It uses
+ memory files as file abstraction to achieve both performance and
+ portability. For binary files, it implements both (with some modification)
+ the algorithm described in "File System Support for Delta Compression" by
+ Joshua P. MacDonald and the algorithm described in "Fingerprinting By Random
+ Polynomials" by Michael O. Rabin. For text files, it follows directives
+ described in "An O(ND) Difference Algorithm and Its Variations" by
+ Eugene W. Myers. Memory files used by the library are basically a collection
+ of buffers that store the file content.
